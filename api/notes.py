@@ -1,8 +1,15 @@
 import json
-from bson import ObjectId
-from api._mongo import get_client
 import os
+import sys
 from datetime import datetime
+from bson import ObjectId
+
+# Import from same directory (relative import for Vercel compatibility)
+try:
+    from ._mongo import get_client
+except ImportError:
+    # Fallback for direct execution
+    from _mongo import get_client
 
 
 def _serialize_doc(d):
@@ -70,6 +77,7 @@ def handler(request):
     """Handles GET (list) and POST (create) for /api/notes
     This is a Vercel serverless function handler.
     """
+    # Import Flask Response inside the function to avoid import issues
     from flask import Response
     
     try:
@@ -132,3 +140,9 @@ def handler(request):
             mimetype='application/json',
             headers={'Access-Control-Allow-Origin': '*'}
         )
+
+# Vercel entry point - must be at module level
+# This allows Vercel's Python runtime to properly invoke the function
+def main(request):
+    """Vercel serverless function entry point"""
+    return handler(request)

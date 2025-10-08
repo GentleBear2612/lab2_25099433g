@@ -7,11 +7,11 @@ All subsequent actions taken while working on this project are recorded below wi
 - Details: Created the "Live Activity Log" section so future automated edits and test results are recorded here.
 
 ### Entry 2 — 2025-10-08T00:00:00Z
-- Action: Implemented `src/llm.py` per requested OpenAI-client style.
+- Action: Implemented `src/llm.py` following an OpenAI-client style.
 - Details:
   - File: `src/llm.py`
-  - Behavior: reads API token from environment (uses `GITHUB_TOKEN` in current implementation), uses `python-dotenv` to load `.env` if present, defines `call_llm_model()` and `translate()` helpers and a small CLI (`--text`, `--to`, `--model`).
-  - Security: No API keys are stored in the repository. `.env` is listed in `.gitignore`.
+  - Behavior: reads API token from the environment (uses `GITHUB_TOKEN` in the current implementation), uses `python-dotenv` to load a `.env` file if present, defines `call_llm_model()` and `translate()` helpers and a small CLI (`--text`, `--to`, `--model`).
+  - Security: No API keys are stored in the repository. `.env` is included in `.gitignore`.
   - How to test locally:
     1. Ensure your shell or `.env` contains a valid token (e.g., `GITHUB_TOKEN` or `OPENAI_API_KEY`) and an appropriate `MODEL_ENDPOINT` if required.
     2. Run: `python -m src.llm --text "Hello" --to Chinese`
@@ -29,55 +29,55 @@ All subsequent actions taken while working on this project are recorded below wi
 - Notes: The script returned a correct Chinese translation in this environment. I recorded the successful output here. If you'd like, I can commit & push `src/llm.py` and this updated write-up to the remote repository.
 
 ### Entry — 2025-10-08T00:50:00Z
-- Action: 启用自动记录（在 `lab2_writeup.md` 中直接记录所有后续操作）
+- Action: Enabled automatic logging (append subsequent actions directly to `lab2_writeup.md`).
 - Details:
-  - 我已在仓库中添加了一个轻量记录脚本 `scripts/activity_logger.py`，该脚本可以将时间戳条目追加到 `lab2_writeup.md`（脚本路径：`scripts/activity_logger.py`）。
-  - 为便捷起见，我现在直接在本文件中记录并保证：在我对仓库进行的每一步修改（创建/编辑文件、运行测试、提交推送等）都会追加一条日志条目到 `lab2_writeup.md`。
-  - 条目格式（示例）：
+  - I added a lightweight logger script in the repository, `scripts/activity_logger.py`, which can append timestamped entries to `lab2_writeup.md` (script path: `scripts/activity_logger.py`).
+  - For convenience, I now record changes directly in this file and guarantee that each modification I make to the repo (create/edit files, run tests, commit/push, etc.) will append a log entry to `lab2_writeup.md`.
+  - Entry format (example):
 
 ```
 ### Entry - 2025-10-08T00:50:00Z
-- Action: <简短动作标题>
+- Action: <short action title>
 - Details:
-  - <详细说明，支持多行和代码块>
+  - <detailed notes, code blocks allowed>
 ```
 
-  - 已记录的相关更改（截至此条目）：
-    - 修改：`src/llm.py`（CLI 改进、stdin 支持、错误处理）
-    - 新增：`src/routes/note.py` 中的翻译端点 `/api/notes/<id>/translate`
-    - 新增：`tests/test_llm.py`（pytest 风格的单元测试）
-    - 更新：`README.md`（添加 `src/llm.py` 使用示例）
-    - 新增：`scripts/activity_logger.py`（可选的记录器脚本，用于程序化追加条目）
+  - Changes recorded so far (as of this entry):
+    - Modified: `src/llm.py` (CLI improvements, stdin support, error handling)
+    - Added: translation endpoint in `src/routes/note.py` at `/api/notes/<id>/translate`
+    - Added: `tests/test_llm.py` (pytest-style unit tests)
+    - Updated: `README.md` (added usage examples for `src/llm.py`)
+    - Added: `scripts/activity_logger.py` (optional logger to programmatically append entries)
 
-  - 约定：
-    1. 我每次在仓库做出修改或运行关键命令后会在本文件追加一条时间戳条目。例：创建/编辑文件、运行测试、提交 git、推送远程、启动/停止服务等。
-    2. 如果你希望我在记录中包含命令输出（如测试失败日志、git push 输出等），请明确许可；输出可能包含敏感信息（如远程 URL）—我会在记录中避免写入任何 secret（token/API key 等）。
+  - Agreement:
+    1. I will append a timestamped entry to this file every time I make a repository change or run an important command (e.g., create/edit files, run tests, git commit, push, start/stop services).
+    2. If you want command outputs included in the log (such as failing test logs or git push output), please explicitly permit it; outputs may contain sensitive information (e.g., remote URLs) — I will avoid writing any secrets (tokens/API keys) into the log.
 
-- Next: 我会在下一次对仓库进行修改（如执行 commit 或运行测试）后，自动追加对应的条目到本文件。如果你确认要我现在将当前未提交的变更提交并记录 commit 日志，请回复“提交并推送”，我将执行并把结果记录在本文件中。
+- Next: I will append the corresponding entry to this file after the next repository change (such as a commit or running tests). If you want me to commit and push the currently uncommitted changes now and record the commit log, reply “提交并推送” (commit and push) and I will perform the actions and record the results here.
 
 # Lab2 Write-up
 
 ## Overview
 This document summarizes the recent changes made to the note-taking application (`note-taking-app-updated-GentleBear2612`) as part of Lab2 work. It records what was changed, why, commands used, how the changes were validated, challenges encountered, and lessons learned. Use this as the first draft — you can refine, add screenshots, or expand details later.
 
-## 整理与操作指南（概要）
+## Organization and Quick Start (Summary)
 
-下面是对本次 Lab2 工作的整理摘要、如何快速复现关键功能、测试状态和后续建议。把这部分当作评分与复现的首要阅读内容。
+Below is a concise summary of the Lab2 work, how to quickly reproduce key functionality, test status, and recommendations. Consider this the primary section for grading and reproduction.
 
-### 一、关键变更汇总
-- 后端：
-  - `src/llm.py` — 增强命令行工具：支持 `--token` 覆盖环境变量、支持从 stdin 读取文本、改善错误处理（可读的 RuntimeError）
-  - `src/routes/note.py` — 新增翻译 API：`POST /api/notes/<note_id>/translate`，请求体可选 `to`、`model`、`token`，返回 `{ id, translated_content }` 或 `{ error }`。
-- 前端：
-  - `src/static/index.html` — 在笔记编辑器中加入 `Translate` 按钮（🌐），点击后会调用后端翻译接口并在界面下方显示翻译文本。
-- 测试与工具：
-  - 新增 `tests/test_llm.py`（pytest 风格）用于验证 `translate()` 行为（包含无 token 抛错与通过 monkeypatch 模拟返回的测试）。
-  - 新增 `scripts/activity_logger.py`，可程序化追加活动条目至 `lab2_writeup.md`（可选，记录历史操作）。
-- 文档：
-  - 更新 `README.md`：增加 `src/llm.py` 的命令行示例（参数、stdin、--token）。
+### 1. Key Changes
+- Backend:
+  - `src/llm.py` — Enhanced CLI tool: supports `--token` to override environment variables, supports reading text from stdin, and improved error handling (raises readable RuntimeError).
+  - `src/routes/note.py` — Added a translation API: `POST /api/notes/<note_id>/translate`. The request body may include `to`, `model`, and `token`. The endpoint returns `{ id, translated_content }` or `{ error }`.
+- Frontend:
+  - `src/static/index.html` — Added a `Translate` button (🌐) to the note editor. Clicking it calls the backend translation API and displays the translated text below the editor.
+- Tests & Tools:
+  - Added `tests/test_llm.py` (pytest-style) to validate `translate()` behavior (including raising when token missing and a monkeypatch-based mock test to avoid real network calls).
+  - Added `scripts/activity_logger.py` to optionally programmatically append activity entries to `lab2_writeup.md`.
+- Documentation:
+  - Updated `README.md` to include command-line examples for `src/llm.py` (parameters, stdin, and `--token`).
 
-### 二、如何快速运行与复现（推荐步骤）
-1. 准备 Python 虚拟环境并安装依赖：
+### 2. Quick run & reproduction (recommended steps)
+1. Prepare a Python virtual environment and install dependencies:
 
 ```powershell
 python -m venv venv
@@ -85,43 +85,43 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-2. 启动后端服务（在项目根目录执行）：
+2. Start the backend server (run from project root):
 
 ```powershell
 python -u src/main.py
 ```
 
-- 服务将监听 http://localhost:5001。
+- The service will listen on http://localhost:5001.
 
-3. 在浏览器打开 http://localhost:5001，创建/保存一个笔记。保存后在编辑器的动作栏点击 “Translate” 按钮即可触发翻译并在页面下方显示翻译结果。
+3. In a browser open http://localhost:5001, create/save a note. After saving, click the "Translate" button in the editor action bar to trigger translation and see the result displayed below the editor.
 
-4. 可以使用命令行直接调用翻译 API（替换 <id> 为笔记 ID）：
+4. You can call the translation API directly from the command line (replace <id> with the note ID):
 
 ```powershell
 curl -X POST -H "Content-Type: application/json" -d "{ \"to\": \"English\" }" http://localhost:5001/api/notes/<id>/translate
 ```
 
-- 若后端需要 API token，请设置环境变量 `GITHUB_TOKEN`（或在请求体中传 `token` 字段覆盖）。
+- If the backend requires an API token, set the environment variable `GITHUB_TOKEN` (or include a `token` field in the request body to override).
 
-5. 运行单元测试（推荐在虚拟环境）：
+5. Run unit tests (recommended inside the virtual environment):
 
 ```powershell
 pip install pytest
 pytest -q
 ```
 
-> 注意：本仓库的 CI/环境可能未预装 `pytest`，本地请先安装。
+> Note: The CI/environment for this repo may not have `pytest` pre-installed; please install it locally before running.
 
-### 三、当前已知/限制
-- 单元测试：`pytest` 未必在运行环境中已安装（我在本地尝试运行时显示找不到 pytest）。请在 CI 或本地环境先安装依赖以运行测试。
-- LLM 调用依赖外部服务与有效 token：若未提供有效 `GITHUB_TOKEN`（或 `--token`），`translate()` 会抛出可读的 RuntimeError；此外，不同提供商端点不同，若遇到 404 请检查 `src/llm.py` 中的 `endpoint` 与 `model` 配置。
-- 前端 UX：当前翻译结果仅展示在页面，不会自动保存到数据库（如果需要保存翻译建议后端和数据模型需要扩展）。
+### 3. Known limitations / caveats
+- Unit tests: `pytest` may not be installed in the running environment (I saw a missing pytest error when I tried locally). Install dependencies in CI or locally to run tests.
+- LLM calls depend on external services and a valid token: if no valid `GITHUB_TOKEN` (or `--token`) is provided, `translate()` raises a readable RuntimeError. Different providers use different endpoints; if you see 404, check `src/llm.py` for `endpoint` and `model` configuration.
+- Frontend UX: translation results are displayed on the page but are not persisted to the database; if you want translations saved, extend the backend and data model.
 
-### 四、下一步建议（优先级排序）
-1. 在 CI（GitHub Actions）中添加测试工作流（安装依赖并运行 `pytest`）。
-2. 增强前端翻译 UX：添加语言选择下拉、加载状态（禁用按钮/旋转图标）、错误重试。
-3. 若需要持久化翻译：为 `Note` 模型添加 `translations` 字段或单独表以保存多语言版本，并在前端添加“保存翻译”按钮。
-4. 增加端到端测试（e2e）来覆盖创建笔记 → 翻译 → 展示的用户流程。
+### 4. Next recommendations (priority)
+1. Add a CI workflow (GitHub Actions) to run tests (install dependencies and run `pytest`).
+2. Improve frontend translation UX: add a language selector, loading state (disable button/spinner), and retry on error.
+3. If you want to persist translations: add a `translations` field to the `Note` model or a separate collection/table to store multilingual versions and add a "Save translation" button in the frontend.
+4. Add end-to-end (e2e) tests covering create note → translate → display flow.
 
 ## Changes made (summary)
 Below are the concrete edits applied to the project and the reasons behind them.
@@ -238,38 +238,38 @@ If you want to expand this file with more detail, screenshots, or code snippets,
 *Draft created automatically during the Lab2 work. Please review and tell me if you'd like this write-up in Chinese, include screenshots, or have other edits.*
 
 ### Entry - 2025-10-08T01:20:00Z
-- Action: 前端翻译语言选择器（中英互译）
+- Action: Frontend translation direction selector (Chinese ↔ English)
 - Details:
-  - 在编辑器的操作栏中添加了一个下拉选择框 `#translateTo`，提供两个选项：`中文 → English`（value: `English`）与 `English → 中文`（value: `Chinese`）。
-  - `Translate` 按钮现在会读取此选择器的值，并将 `to` 字段随 POST 请求发送到后端 `/api/notes/<id>/translate`。
-  - 这些更改位于 `src/static/index.html`，包括样式与 JavaScript 逻辑更新。
-  - 使用方式：保存笔记后，在下拉中选择翻译方向，点击 `Translate` 即可在页面下方看到翻译结果。
+  - Added a dropdown selector `#translateTo` in the editor action bar with two options: `中文 → English` (value: `English`) and `English → 中文` (value: `Chinese`).
+  - The `Translate` button now reads the selector value and sends the `to` field with the POST request to the backend `/api/notes/<id>/translate`.
+  - These changes are in `src/static/index.html`, including styles and JavaScript logic.
+  - Usage: after saving a note, choose the translation direction from the dropdown and click `Translate` to see the translated result below the page.
 
-- Next: 如需我将翻译方向文本国际化或将下拉改为图标切换，我可以继续改进。
+- Next: If you want the translation direction text internationalized or prefer an icon-based toggle instead of a dropdown, I can implement that.
 
 ### Entry - 2025-10-08T01:35:00Z
-- Action: 前端界面优化 — 调整翻译控件位置与可见性
+- Action: Frontend UI refinement — adjust translation control placement and visibility
 - Details:
-  - 把 `Translate` 按钮移到语言选择（`#translateTo`）之前，使按钮在视觉上更突出。
-  - 在创建新笔记场景中隐藏翻译控件（按钮与选择器），仅在查看已有笔记或更新已保存笔记时显示翻译功能，避免在无意义的上下文中暴露该功能。
-  - 这些更改在 `src/static/index.html` 中实现，包含 JavaScript 控制显示/隐藏逻辑。
+  - Moved the `Translate` button before the language selector (`#translateTo`) to make the button visually more prominent.
+  - Hid the translation controls (button and selector) in the "create new note" scenario; they now only appear when viewing or updating an existing saved note to avoid exposing the feature in meaningless contexts.
+  - These changes are implemented in `src/static/index.html` and include JavaScript logic to control show/hide behavior.
 
-- Why: 提高界面清晰性，避免用户在新建/空白笔记时误触翻译功能。
+- Why: Improve UI clarity and prevent users from accidentally invoking translation on empty/new notes.
 
 ### Entry - 2025-10-08T02:10:00Z
-- Action: 将后端数据存储从 SQLite/SQLAlchemy 重构为 MongoDB（PyMongo）并更新相关路由/模型
+- Action: Refactored backend storage from SQLite/SQLAlchemy to MongoDB (PyMongo) and updated related routes/models
 - Details:
-  - 变更的文件：
-    - `src/main.py` — 初始化 PyMongo 客户端，使用环境变量 `MONGO_URI` 和 `MONGO_DB_NAME` 来配置并把 db 注入到 `app.config['MONGO_DB']`。
-    - `src/models/note.py`、`src/models/user.py` — 将原有 SQLAlchemy 模型替换为简单的文档构造/转换辅助函数（`make_*_doc`, `*_doc_to_dict`）。
-    - `src/routes/note.py`、`src/routes/user.py` — 使用 `current_app.config['MONGO_DB']` 的集合进行 CRUD 操作（`notes`, `users`），保持原来的 API 路径不变。
-    - `requirements.txt` — 新增 `pymongo` 与 `dnspython`。
-  - 运行与配置：
-    1. 在 MongoDB Cloud 上创建集群并获得连接字符串（示例：`mongodb+srv://<user>:<pass>@cluster0.mongodb.net/<dbname>?retryWrites=true&w=majority`）。
-    2. 在本地或部署环境设置环境变量：
-       - `MONGO_URI` = 你的连接字符串
-       - `MONGO_DB_NAME` = 目标数据库名（例如 `notetaker_db`）
-    3. 启动服务：
+  - Files changed:
+    - `src/main.py` — initialize a PyMongo client, use environment variables `MONGO_URI` and `MONGO_DB_NAME` for configuration, and inject the db into `app.config['MONGO_DB']`.
+    - `src/models/note.py`, `src/models/user.py` — replaced previous SQLAlchemy models with simple document construction/conversion helpers (`make_*_doc`, `*_doc_to_dict`).
+    - `src/routes/note.py`, `src/routes/user.py` — perform CRUD operations on the `notes` and `users` collections using `current_app.config['MONGO_DB']`, keeping the original API paths intact.
+    - `requirements.txt` — added `pymongo` and `dnspython`.
+  - Running & configuration:
+    1. Create a cluster on MongoDB Cloud and obtain a connection string (example: `mongodb+srv://<user>:<pass>@cluster0.mongodb.net/<dbname>?retryWrites=true&w=majority`).
+    2. Set environment variables locally or in your deployment environment:
+       - `MONGO_URI` = your connection string
+       - `MONGO_DB_NAME` = target database name (e.g., `notetaker_db`)
+    3. Start the service:
 
 ```powershell
 venv\Scripts\activate
@@ -277,18 +277,18 @@ pip install -r requirements.txt
 python -u src/main.py
 ```
 
-  - 注意事项 & 已知问题：
-    - 我已将项目中的 SQLAlchemy 相关模型/依赖替换为 PyMongo 实现，但保留了 `requirements.txt` 中的 SQLAlchemy 行以便回滚或兼容性检查。
-    - 需要安装 `pymongo` 才能在本地运行（我在当前环境中未尝试连接实际 MongoDB）。
-    - ObjectId 用于文档 ID：API 路径中 `id` 现在为字符串形式的 ObjectId；确保前端/调用方在处理 ID 时使用返回的字符串值。
+  - Notes & known issues:
+    - I replaced SQLAlchemy-related models/dependencies with a PyMongo implementation but kept the SQLAlchemy line in `requirements.txt` for rollback or compatibility checks.
+    - `pymongo` must be installed to run locally (I did not attempt to connect to a real MongoDB from this environment).
+    - ObjectId is used for document IDs: the `id` in API paths is now the string form of an ObjectId; ensure the frontend/caller uses the string value returned by the API when handling IDs.
 
-- Next: 如果你希望我把现有 SQLite 数据迁移到 MongoDB，我可以编写一个小脚本来读取 `database/app.db` 并将数据插入到 MongoDB 集合中（需要你允许访问源数据库文件）。
+- Next: If you want me to migrate existing SQLite data to MongoDB, I can write a small script to read `database/app.db` and insert data into MongoDB collections (I would need permission to access the source DB file).
 
 ### Entry - 2025-10-08T02:28:00Z
-- Action: 使用提供的 MongoDB 连接串进行连接与 smoke-test（插入并读取临时文档）
+- Action: Connected to the provided MongoDB connection string and performed a smoke test (insert & read temporary document)
 - Details:
-  - 操作说明：在当前 PowerShell 会话中把 `MONGO_URI` 和 `MONGO_DB_NAME` 设置为会话变量，然后安装依赖并运行 `scripts/mongo_smoke_test.py` 来验证连通性与 CRUD 能力。
-  - 命令（已在会话中运行，未把凭证写入仓库）：
+  - Procedure: In the current PowerShell session I set `MONGO_URI` and `MONGO_DB_NAME` as session environment variables, installed dependencies, and ran `scripts/mongo_smoke_test.py` to verify connectivity and basic CRUD.
+  - Commands (run in session; credentials were not written to the repo):
 
 ```powershell
 $env:MONGO_URI = '<redacted - provided by user in chat>'
@@ -297,59 +297,59 @@ pip install -r requirements.txt
 python -u .\scripts\mongo_smoke_test.py
 ```
 
-  - 关键输出（摘录，不包含凭证）：
+  - Key output (redacted of credentials):
     - Successfully installed `pymongo` and `dnspython`.
     - Connecting to MongoDB... Using database: notetaker_db
     - Inserted id: 68e643fd02eeba6d267048e9
     - Found document title: smoke-test
     - Deleted test document
-  - 注意：运行中出现了一个 Python DeprecationWarning（关于 datetime.datetime.utcnow()），这是测试脚本中使用的时间函数触发的，可在后续脚本中改为使用时区感知的 UTC 时间。
+  - Note: A Python DeprecationWarning appeared related to datetime.datetime.utcnow(); this is triggered by the test script and can be replaced with timezone-aware UTC timestamps later.
 
-- Result: MongoDB cloud cluster is reachable from this environment and basic CRUD (insert/find/delete) succeeded.
+  - Result: MongoDB cloud cluster is reachable from this environment and basic CRUD (insert/find/delete) succeeded.
 
-- Next steps (recommendations):
-  1. 若要把现有 SQLite 数据迁移到 MongoDB，我可以编写并运行一个迁移脚本（读取 `database/app.db`，将 notes 与 users 写入 MongoDB），但需要你确认并允许访问该文件。建议先备份 SQLite 文件。
-  2. 我可以在已连通的 MongoDB 上再执行一次端到端测试：启动 Flask，创建笔记，通过前端 Translate 按钮发起翻译请求并记录完整流程结果到写作里。
-  3. 若需要，我可以把 MONGO_URI 写入项目的环境配置（例如 `.env`）但不建议在仓库中提交凭证；更安全的做法是在部署环境/CI 中设置环境变量。
+  - Next steps (recommendations):
+  1. To migrate existing SQLite data to MongoDB, I can write and run a migration script (read `database/app.db`, insert notes and users into MongoDB) but I will need your confirmation and access to the file. Back up the SQLite file first.
+  2. I can run an end-to-end test on the connected MongoDB: start Flask, create notes, use the frontend Translate button to initiate a translation, and record the full workflow in the write-up.
+  3. If desired, I can put `MONGO_URI` into a project environment file (e.g., `.env`) but do not recommend committing credentials to the repo; set them in deployment/CI.
 
 ### Entry - 2025-10-08T02:50:00Z
-- Action: 运行 SQLite -> MongoDB 迁移脚本（dry-run）
+- Action: Ran SQLite -> MongoDB migration script in dry-run mode
 - Details:
-  - 命令：`python scripts/migrate_sqlite_to_mongo.py --dry-run`
-  - 发现：SQLite (`database/app.db`) 中的记录：
-    - notes: 2 条
-    - users: 0 条
-  - 示例笔记（示例，不含内容字段以保护隐私）： id=1, title='maths'
-  - 结论：dry-run 成功读取本地 SQLite 的数据并显示迁移统计，未写入 MongoDB（dry-run 模式）。
+  - Command: `python scripts/migrate_sqlite_to_mongo.py --dry-run`
+  - Discovery: SQLite (`database/app.db`) contains:
+    - notes: 2 records
+    - users: 0 records
+  - Example note (sanitized, content omitted): id=1, title='maths'
+  - Conclusion: dry-run successfully read local SQLite data and printed migration statistics without writing to MongoDB (dry-run mode).
 
-- Next: 如果确认，我将执行 `--commit` 模式将这 2 条笔记写入 MongoDB（会在每个插入文档中添加 `sqlite_id` 字段以便追踪）。
+- Next: If confirmed, I will run with `--commit` to write these 2 notes to MongoDB (each inserted document will include a `sqlite_id` field for traceability).
 
 ### Entry - 2025-10-08T02:58:00Z
-- Action: 执行 SQLite -> MongoDB 迁移（--commit）
+- Action: Performed SQLite -> MongoDB migration (`--commit`)
 - Details:
-  - 命令：`python scripts/migrate_sqlite_to_mongo.py --commit`
-  - 输出摘要：
+  - Command: `python scripts/migrate_sqlite_to_mongo.py --commit`
+  - Output summary:
     - Found 2 notes and 0 users in SQLite
     - Migration report:
       - notes to migrate: 2
       - users to migrate: 0
       - notes inserted: 2
       - users inserted: 0
-  - 迁移后验证（通过 `scripts/check_mongo.py`）：
-    - notes 集合计数: 2
-    - 示例 note title: maths
-    - users 集合：未找到
+  - Post-migration verification (via `scripts/check_mongo.py`):
+    - notes collection count: 2
+    - example note title: maths
+    - users collection: not found
 
-- Notes & recommendations:
-  - 已在每个插入的文档中设置 `sqlite_id` 字段以便追踪原始 SQLite ID。
-  - 建议在确认无误后备份并（可选）删除或归档原始 SQLite `database/app.db`，以避免数据不一致或重复迁移。
-  - 如果你想，我可以删除 `database/app.db` 中已迁移的条目或把其重命名为 `app.db.bak`（会在仓库中记录这一操作）。
+  - Notes & recommendations:
+    - Each inserted document includes a `sqlite_id` field to track the original SQLite ID.
+    - After verification, consider backing up and optionally deleting or archiving the original SQLite `database/app.db` to avoid duplication or accidental re-migration.
+    - If you want, I can remove migrated records from `database/app.db` or rename the file to `app.db.bak` and record the action in the repo.
 
 ### Entry - 2025-10-08T03:20:00Z
-- Action: 修复 Windows 上 Flask 开发服务器崩溃（WinError 10038）
+- Action: Fixed Flask development server crash on Windows (WinError 10038)
 - Details:
-  - 现象：在开发期间，Flask/Werkzeug 自动重载（reloader）在检测到文件变更时触发线程操作，导致 OSError: [WinError 10038] 在一个非套接字上尝试了一个操作。
-  - 修复：在 `src/main.py` 的 `app.run()` 中禁用自动重载，使用 `use_reloader=False`，以避免在 Windows 环境下重复出现该错误。
-  - 更改文件：`src/main.py`
+  - Symptom: During development, Flask/Werkzeug auto-reloader triggered thread/socket operations when files changed, causing OSError: [WinError 10038] a socket operation was attempted on something that is not a socket.
+  - Fix: Disabled the auto-reloader in `app.run()` inside `src/main.py` using `use_reloader=False` to avoid the error on Windows.
+  - Files changed: `src/main.py`
 
-- Note: 在生产部署中请使用合适的 WSGI 服务器（例如 Gunicorn/uvicorn），不要使用 Flask 开发服务器。
+  - Note: For production, use a proper WSGI server (e.g., Gunicorn/uvicorn) rather than the Flask development server.

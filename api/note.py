@@ -3,6 +3,10 @@ from bson import ObjectId
 from api._mongo import get_client
 import os
 from datetime import datetime
+from flask import Flask, Response
+
+# Create a minimal Flask app for Vercel
+app = Flask(__name__)
 
 
 def _serialize_doc(d):
@@ -149,3 +153,8 @@ def handler(request):
             mimetype='application/json',
             headers={'Access-Control-Allow-Origin': '*'}
         )
+
+# Vercel entry point
+def main(request):
+    """Vercel serverless function entry point"""
+    return handler(request)

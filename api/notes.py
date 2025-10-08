@@ -1,12 +1,15 @@
 import json
-from bson import ObjectId
-from api._mongo import get_client
 import os
+import sys
 from datetime import datetime
-from flask import Flask, Response, request as flask_request
+from bson import ObjectId
 
-# Create a minimal Flask app for Vercel
-app = Flask(__name__)
+# Import from same directory (relative import for Vercel compatibility)
+try:
+    from ._mongo import get_client
+except ImportError:
+    # Fallback for direct execution
+    from _mongo import get_client
 
 
 def _serialize_doc(d):
@@ -74,6 +77,9 @@ def handler(request):
     """Handles GET (list) and POST (create) for /api/notes
     This is a Vercel serverless function handler.
     """
+    # Import Flask Response inside the function to avoid import issues
+    from flask import Response
+    
     try:
         client = get_client()
         db_name = os.environ.get('MONGO_DB_NAME', 'notetaker_db')

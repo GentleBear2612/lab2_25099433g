@@ -1,9 +1,12 @@
 import os
+import sys
+import traceback
 import certifi
 from pymongo import MongoClient
 
 # Module-level client to allow reuse across serverless invocations when possible
 _client = None
+
 
 def get_client():
     global _client
@@ -14,9 +17,15 @@ def get_client():
     if not uri:
         raise RuntimeError('MONGO_URI environment variable is not set')
 
-    # Use certifi bundle to improve TLS CA trust consistency across platforms
-    _client = MongoClient(uri, serverSelectionTimeoutMS=5000, tlsCAFile=certifi.where())
-    # Attempt a quick ping to ensure connectivity
-    _client.admin.command('ping')
-    return _client
+    try:
+        # Use certifi bundle to improve TLS CA trust consistency across platforms
+        _client = MongoClient(uri, serverSelectionTimeoutMS=5000, tlsCAFile=certifi.where())
+        # Attempt a quick ping to ensure connectivity
+        _client.admin.command('ping')
+        return _client
+    except Exception as e:
+        # Print full traceback to stderr so Vercel captures it in function logs
+        traceback.print_exc(file=sys.stderr)
+        # raise a clearer runtime error for the caller
+        raise RuntimeError(f'Unable to connect to MongoDB: {e}') from e
 

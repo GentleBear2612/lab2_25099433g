@@ -93,4 +93,12 @@ def handler(request):
 
         return {'statusCode': 405, 'headers': {'Allow': 'GET, POST'}, 'body': ''}
     except Exception as e:
-        return {'statusCode': 500, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'error': str(e)})}
+        # Import here to avoid adding logging dependency at module import time
+        import sys, traceback
+        traceback.print_exc(file=sys.stderr)
+        # include short hint in response body to help debugging from client side logs
+        return {
+            'statusCode': 500,
+            'headers': {'Content-Type': 'application/json'},
+            'body': json.dumps({'error': 'Internal server error', 'detail': str(e)})
+        }

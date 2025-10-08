@@ -41,6 +41,9 @@ def _get_id(request):
 
 
 def handler(request):
+    """Handles single note operations: GET, PUT, DELETE"""
+    from flask import Response
+    
     try:
         client = get_client()
         db_name = os.environ.get('MONGO_DB_NAME', 'notetaker_db')
@@ -50,18 +53,38 @@ def handler(request):
         method = getattr(request, 'method', 'GET').upper()
         idv = _get_id(request)
         if not idv:
-            return {'statusCode': 400, 'body': json.dumps({'error': 'id query parameter required'})}
+            return Response(
+                json.dumps({'error': 'id query parameter required'}),
+                status=400,
+                mimetype='application/json',
+                headers={'Access-Control-Allow-Origin': '*'}
+            )
 
         try:
             oid = ObjectId(idv)
         except Exception:
-            return {'statusCode': 400, 'body': json.dumps({'error': 'invalid id'})}
+            return Response(
+                json.dumps({'error': 'invalid id'}),
+                status=400,
+                mimetype='application/json',
+                headers={'Access-Control-Allow-Origin': '*'}
+            )
 
         if method == 'GET':
             doc = coll.find_one({'_id': oid})
             if not doc:
-                return {'statusCode': 404, 'body': json.dumps({'error': 'not found'})}
-            return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps(_serialize_doc(doc))}
+                return Response(
+                    json.dumps({'error': 'not found'}),
+                    status=404,
+                    mimetype='application/json',
+                    headers={'Access-Control-Allow-Origin': '*'}
+                )
+            return Response(
+                json.dumps(_serialize_doc(doc)),
+                status=200,
+                mimetype='application/json',
+                headers={'Access-Control-Allow-Origin': '*'}
+            )
 
         if method == 'PUT':
             try:
@@ -74,24 +97,55 @@ def handler(request):
             if 'content' in body:
                 update['content'] = body['content']
             if not update:
-                return {'statusCode': 400, 'body': json.dumps({'error': 'no updatable fields provided'})}
+                return Response(
+                    json.dumps({'error': 'no updatable fields provided'}),
+                    status=400,
+                    mimetype='application/json',
+                    headers={'Access-Control-Allow-Origin': '*'}
+                )
             update['updated_at'] = datetime.utcnow()
             res = coll.find_one_and_update({'_id': oid}, {'$set': update}, return_document=True)
             if not res:
-                return {'statusCode': 404, 'body': json.dumps({'error': 'not found'})}
-            return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps(_serialize_doc(res))}
+                return Response(
+                    json.dumps({'error': 'not found'}),
+                    status=404,
+                    mimetype='application/json',
+                    headers={'Access-Control-Allow-Origin': '*'}
+                )
+            return Response(
+                json.dumps(_serialize_doc(res)),
+                status=200,
+                mimetype='application/json',
+                headers={'Access-Control-Allow-Origin': '*'}
+            )
 
         if method == 'DELETE':
             res = coll.delete_one({'_id': oid})
             if res.deleted_count == 0:
-                return {'statusCode': 404, 'body': json.dumps({'error': 'not found'})}
-            return {'statusCode': 204, 'body': ''}
+                return Response(
+                    json.dumps({'error': 'not found'}),
+                    status=404,
+                    mimetype='application/json',
+                    headers={'Access-Control-Allow-Origin': '*'}
+                )
+            return Response('', status=204, headers={'Access-Control-Allow-Origin': '*'})
 
-        return {'statusCode': 405, 'body': ''}
+        return Response('', status=405, headers={'Access-Control-Allow-Origin': '*'})
+        
     except Exception as e:
         import sys, traceback
         traceback.print_exc(file=sys.stderr)
         msg = str(e) or ''
         if isinstance(e, RuntimeError) and 'MONGO_URI' in msg:
-            return {'statusCode': 503, 'body': json.dumps({'error': 'Service unavailable', 'detail': 'MONGO_URI environment variable not configured'})}
-        return {'statusCode': 500, 'body': json.dumps({'error': msg})}
+            return Response(
+                json.dumps({'error': 'Service unavailable', 'detail': 'MONGO_URI environment variable not configured'}),
+                status=503,
+                mimetype='application/json',
+                headers={'Access-Control-Allow-Origin': '*'}
+            )
+        return Response(
+            json.dumps({'error': msg}),
+            status=500,
+            mimetype='application/json',
+            headers={'Access-Control-Allow-Origin': '*'}
+        )

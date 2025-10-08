@@ -22,7 +22,7 @@ def get_client():
 
     # Prefer MONGODB_URI (Vercel integration) but fall back to MONGO_URI for
     # backwards compatibility with older setups.
-    uri = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI')
+    uri = os.environ.get('MONGO_URI') or os.environ.get('MONGODB_URI')
     if not uri:
         # Provide a lightweight in-memory fallback client to avoid 500 errors
         # when running in environments without configured MONGO_URI (useful

@@ -147,7 +147,7 @@ def main():
     print()
     
     # Check environment
-    mongo_uri = os.environ.get('MONGO_URI')
+    mongo_uri = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI')
     if mongo_uri:
         print(f"✅ MONGO_URI is set: {mongo_uri[:20]}...")
     else:

@@ -115,9 +115,9 @@ def handler(request):
         import sys, traceback
         traceback.print_exc(file=sys.stderr)
         msg = str(e) or ''
-        if isinstance(e, RuntimeError) and 'MONGO_URI' in msg:
+        if isinstance(e, RuntimeError) and ('MONGO_URI' in msg or 'MONGODB_URI' in msg):
             return Response(
-                json.dumps({'error': 'Service unavailable', 'detail': 'MONGO_URI environment variable not configured'}),
+                json.dumps({'error': 'Service unavailable', 'detail': 'MONGODB_URI (preferred) or MONGO_URI environment variable not configured'}),
                 status=503,
                 mimetype='application/json',
                 headers={'Access-Control-Allow-Origin': '*'}

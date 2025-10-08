@@ -116,7 +116,7 @@ def migrate(notes, users, mongo_db, do_commit=False):
 
 def main():
     args = parse_args()
-    MONGO_URI = os.environ.get('MONGO_URI')
+    MONGO_URI = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI')
     MONGO_DB = os.environ.get('MONGO_DB_NAME', 'notetaker_db')
 
     if not MONGO_URI:

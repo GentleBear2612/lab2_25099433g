@@ -157,12 +157,12 @@ def handler(request):
         
         # Check if it's a MongoDB connection error
         error_msg = str(e)
-        if 'MONGO_URI' in error_msg or 'Unable to connect' in error_msg:
+        if 'MONGO_URI' in error_msg or 'MONGODB_URI' in error_msg or 'Unable to connect' in error_msg:
             return create_response(
                 {
                     'error': 'Database connection failed',
-                    'detail': 'MONGO_URI environment variable may not be configured properly',
-                    'hint': 'Check Vercel environment variables and ensure MONGO_URI is set'
+                    'detail': 'MONGODB_URI (preferred) or MONGO_URI environment variable may not be configured properly',
+                    'hint': 'Check Vercel environment variables and ensure MONGODB_URI is set for production (or MONGO_URI for legacy)'
                 },
                 status=503
             )

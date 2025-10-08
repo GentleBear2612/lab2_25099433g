@@ -9,8 +9,8 @@ def doc_to_dict(doc):
         'id': str(doc.get('_id')),
         'title': doc.get('title', ''),
         'content': doc.get('content', ''),
-        'created_at': (doc.get('created_at').isoformat() if hasattr(doc.get('created_at'), 'isoformat') else doc.get('created_at')) if doc.get('created_at') else None,
-        'updated_at': (doc.get('updated_at').isoformat() if hasattr(doc.get('updated_at'), 'isoformat') else doc.get('updated_at')) if doc.get('updated_at') else None,
+        'created_at': doc.get('created_at').isoformat() if doc.get('created_at') else None,
+        'updated_at': doc.get('updated_at').isoformat() if doc.get('updated_at') else None,
         'translations': doc.get('translations', {})
     }
 

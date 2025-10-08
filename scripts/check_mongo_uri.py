@@ -3,8 +3,8 @@ from pymongo import MongoClient
 from urllib.parse import urlparse
 import traceback
 
-uri = os.environ.get('MONGO_URI')
-print('MONGO_URI environment variable is set:' , bool(uri))
+uri = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI')
+print('MONGODB_URI / MONGO_URI environment variable is set:' , bool(uri))
 if uri:
     # mask credentials when printing
     try:
@@ -21,10 +21,10 @@ if uri:
         if ':' in credential:
             user, pwd = credential.split(':',1)
             masked = uri.replace(credential, user+':<redacted>')
-    print('MONGO_URI (masked):', masked)
-    print('MONGO host extracted from URI:', host)
+    print('MONGODB_URI / MONGO_URI (masked):', masked)
+    print('Mongo host extracted from URI:', host)
 else:
-    print('MONGO_URI not set; defaulting to mongodb://localhost:27017')
+    print('MONGODB_URI / MONGO_URI not set; defaulting to mongodb://localhost:27017')
     uri = 'mongodb://localhost:27017'
 
 try:

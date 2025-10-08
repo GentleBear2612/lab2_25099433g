@@ -14,22 +14,22 @@ def check_environment_variables():
     print("1. CHECKING ENVIRONMENT VARIABLES")
     print("=" * 70)
     
-    mongo_uri = os.environ.get('MONGO_URI')
+    mongo_uri = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI')
     mongo_db = os.environ.get('MONGO_DB_NAME', 'notetaker_db')
     
     if not mongo_uri:
-        print("❌ CRITICAL: MONGO_URI is NOT set")
+        print("❌ CRITICAL: MONGODB_URI / MONGO_URI is NOT set")
         print("\n🔧 FIX THIS IN VERCEL:")
         print("   1. Go to https://vercel.com/dashboard")
         print("   2. Select your project")
         print("   3. Settings → Environment Variables")
-        print("   4. Add: MONGO_URI = your_mongodb_connection_string")
+        print("   4. Add: MONGODB_URI (or MONGO_URI) = your_mongodb_connection_string")
         print("   5. Make sure it's enabled for Production, Preview, Development")
         print("   6. Click Save")
         print("   7. Redeploy your application")
         return False
     else:
-        print(f"✅ MONGO_URI is set: {mongo_uri[:30]}...")
+        print(f"✅ MONGODB_URI / MONGO_URI is set: {mongo_uri[:30]}...")
         if not (mongo_uri.startswith('mongodb://') or mongo_uri.startswith('mongodb+srv://')):
             print("⚠️  WARNING: URI doesn't start with 'mongodb://' or 'mongodb+srv://'")
             return False
@@ -52,9 +52,9 @@ def test_mongodb_connection():
         print("   Run: pip install pymongo certifi")
         return False
     
-    mongo_uri = os.environ.get('MONGO_URI')
+    mongo_uri = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI')
     if not mongo_uri:
-        print("⚠️  Skipping (MONGO_URI not set)")
+        print("⚠️  Skipping (MONGODB_URI / MONGO_URI not set)")
         return False
     
     try:

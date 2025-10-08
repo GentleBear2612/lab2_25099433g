@@ -20,7 +20,8 @@ def get_client():
     if _client is not None:
         return _client
 
-    uri = os.environ.get('MONGO_URI')
+    # Prefer MONGODB_URI (common in some hosting platforms) but fall back to MONGO_URI
+    uri = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI')
     if not uri:
         # Provide a lightweight in-memory fallback client to avoid 500 errors
         # when running in environments without configured MONGO_URI (useful
@@ -129,7 +130,7 @@ def get_client():
                 return A()
 
         # warn in logs but allow fallback
-        print('WARNING: MONGO_URI not set — using in-memory fallback (ephemeral).', file=sys.stderr)
+        print('WARNING: MONGODB_URI / MONGO_URI not set — using in-memory fallback (ephemeral).', file=sys.stderr)
         _client = FakeClient()
         return _client
 

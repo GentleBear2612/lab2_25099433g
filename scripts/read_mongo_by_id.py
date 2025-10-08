@@ -8,7 +8,8 @@ if len(sys.argv) < 2:
     sys.exit(2)
 
 note_id = sys.argv[1]
-MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017')
+# Prefer MONGODB_URI, fall back to MONGO_URI, then to localhost
+MONGO_URI = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI', 'mongodb://localhost:27017')
 MONGO_DB = os.environ.get('MONGO_DB_NAME', 'notetaker_db')
 client = MongoClient(MONGO_URI)
 db = client[MONGO_DB]

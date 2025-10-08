@@ -2,12 +2,12 @@ import os
 from pymongo import MongoClient
 import traceback
 
-MONGO_URI = os.environ.get('MONGO_URI')
+MONGO_URI = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI')
 MONGO_DB = os.environ.get('MONGO_DB_NAME', 'notetaker_db')
 
 try:
     if not MONGO_URI:
-        print('MONGO_URI not set')
+        print('MONGODB_URI / MONGO_URI not set')
         raise SystemExit(1)
 
     client = MongoClient(MONGO_URI)

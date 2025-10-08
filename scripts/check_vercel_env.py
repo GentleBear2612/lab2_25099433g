@@ -7,18 +7,18 @@ import sys
 
 def check_mongo_uri():
     """Check if MONGO_URI is set"""
-    uri = os.environ.get('MONGO_URI')
+    uri = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI')
     if not uri:
-        print("❌ MONGO_URI environment variable is NOT set")
+        print("❌ MONGODB_URI / MONGO_URI environment variable is NOT set")
         print("   This will cause the application to use in-memory fallback storage")
         print("   Data will NOT be persisted across deployments")
         print("\n   To fix this:")
         print("   1. Go to your Vercel project settings")
         print("   2. Navigate to Environment Variables")
-        print("   3. Add MONGO_URI with your MongoDB connection string")
+        print("   3. Add MONGODB_URI (or MONGO_URI) with your MongoDB connection string")
         return False
     else:
-        print("✅ MONGO_URI is set")
+        print("✅ MONGODB_URI / MONGO_URI is set")
         # Check if it looks valid
         if uri.startswith('mongodb://') or uri.startswith('mongodb+srv://'):
             print(f"   URI format looks correct: {uri[:20]}...")
@@ -68,9 +68,9 @@ def check_dependencies():
 
 def test_mongo_connection():
     """Test MongoDB connection if URI is set"""
-    uri = os.environ.get('MONGO_URI')
+    uri = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI')
     if not uri:
-        print("\n⚠️  Skipping connection test (MONGO_URI not set)")
+        print("\n⚠️  Skipping connection test (MONGODB_URI / MONGO_URI not set)")
         return False
     
     print("\n🔄 Testing MongoDB connection...")

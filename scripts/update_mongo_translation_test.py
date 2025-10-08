@@ -2,7 +2,7 @@ from pymongo import MongoClient
 from bson import ObjectId
 import os
 
-MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017')
+MONGO_URI = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI', 'mongodb://localhost:27017')
 MONGO_DB = os.environ.get('MONGO_DB_NAME', 'notetaker_db')
 client = MongoClient(MONGO_URI)
 db = client[MONGO_DB]

@@ -147,11 +147,11 @@ def main():
     print()
     
     # Check environment
-    mongo_uri = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI')
+    mongo_uri = os.environ.get('MONGO_URI')
     if mongo_uri:
-        print(f"✅ MONGODB_URI / MONGO_URI is set: {mongo_uri[:20]}...")
+        print(f"✅ MONGO_URI is set: {mongo_uri[:20]}...")
     else:
-        print("⚠️  MONGODB_URI / MONGO_URI not set - will use in-memory fallback")
+        print("⚠️  MONGO_URI not set - will use in-memory fallback")
     print()
     
     results = []

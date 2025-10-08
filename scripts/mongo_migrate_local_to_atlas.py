@@ -23,8 +23,7 @@ def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument('--dry-run', action='store_true', help='Show what would be migrated')
     p.add_argument('--commit', action='store_true', help='Perform migration')
-    # Prefer MONGODB_URI but fall back to MONGO_URI for compatibility
-    p.add_argument('--target-uri', default=(os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI')), help='Target MongoDB URI (Atlas). Defaults to MONGODB_URI or MONGO_URI env var')
+    p.add_argument('--target-uri', default=os.environ.get('MONGO_URI'), help='Target MongoDB URI (Atlas). Defaults to MONGO_URI env var')
     p.add_argument('--target-db', default=os.environ.get('MONGO_DB_NAME','notetaker_db'))
     p.add_argument('--local-uri', default='mongodb://localhost:27017', help='Local MongoDB URI')
     return p.parse_args()
@@ -54,7 +53,7 @@ def main():
         print('Specify --dry-run or --commit')
         return
     if not args.target_uri:
-        print('Error: target URI not provided. Set MONGODB_URI / MONGO_URI env var or pass --target-uri')
+        print('Error: target URI not provided. Set MONGO_URI env var or pass --target-uri')
         return
 
     print('Local URI:', args.local_uri)

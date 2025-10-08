@@ -2,11 +2,11 @@ import os
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 
-MONGO_URI = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI')
+MONGO_URI = os.environ.get('MONGO_URI')
 MONGO_DB = os.environ.get('MONGO_DB_NAME', 'notetaker_db')
 
 if not MONGO_URI:
-    print('MONGODB_URI / MONGO_URI not set')
+    print('MONGO_URI not set')
     raise SystemExit(1)
 
 print('Connecting to MongoDB...')

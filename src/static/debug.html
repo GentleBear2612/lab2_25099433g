@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API 调试工具 - Vercel 部署诊断</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .test-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .test-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .status.pending {
+            background: #ffd700;
+            color: #333;
+        }
+        
+        .status.success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .status.error {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .status.loading {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .result pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .info-box {
+            background: #eff6ff;
+            border: 1px solid #3b82f6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .info-box h3 {
+            color: #1e40af;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .info-box p {
+            color: #1e3a8a;
+            line-height: 1.6;
+        }
+        
+        .warning-box {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .warning-box h3 {
+            color: #92400e;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .warning-box ul {
+            color: #78350f;
+            margin-left: 20px;
+        }
+        
+        .warning-box li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        
+        .success-box {
+            background: #d1fae5;
+            border: 1px solid #10b981;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .success-box h3 {
+            color: #065f46;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .url-display {
+            background: #1f2937;
+            color: #10b981;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 API 调试工具</h1>
+        <p class="subtitle">诊断 Vercel 部署中的 API 连接问题</p>
+        
+        <div class="info-box">
+            <h3>📌 使用说明</h3>
+            <p>此工具将测试您的 API 端点并显示详细的错误信息。请按顺序点击下面的测试按钮。</p>
+        </div>
+        
+        <!-- Test 1 -->
+        <div class="test-section">
+            <h2>
+                <span>测试 1: 检测当前 URL</span>
+                <span class="status pending" id="status1">待测试</span>
+            </h2>
+            <button onclick="runTest1()">运行测试</button>
+            <div class="result" id="result1" style="display:none;"></div>
+        </div>
+        
+        <!-- Test 2 -->
+        <div class="test-section">
+            <h2>
+                <span>测试 2: GET /api/notes</span>
+                <span class="status pending" id="status2">待测试</span>
+            </h2>
+            <button onclick="runTest2()">运行测试</button>
+            <div class="result" id="result2" style="display:none;"></div>
+        </div>
+        
+        <!-- Test 3 -->
+        <div class="test-section">
+            <h2>
+                <span>测试 3: POST /api/notes（创建测试笔记）</span>
+                <span class="status pending" id="status3">待测试</span>
+            </h2>
+            <button onclick="runTest3()">运行测试</button>
+            <div class="result" id="result3" style="display:none;"></div>
+        </div>
+        
+        <!-- Test 4 -->
+        <div class="test-section">
+            <h2>
+                <span>测试 4: 网络连通性检查</span>
+                <span class="status pending" id="status4">待测试</span>
+            </h2>
+            <button onclick="runTest4()">运行测试</button>
+            <div class="result" id="result4" style="display:none;"></div>
+        </div>
+        
+        <div class="warning-box" id="diagnosticResults" style="display:none;">
+            <h3>⚠️ 诊断结果</h3>
+            <ul id="diagnosticList"></ul>
+        </div>
+        
+        <div class="success-box" id="successResults" style="display:none;">
+            <h3>✅ 所有测试通过！</h3>
+            <p>API 工作正常。如果前端仍然显示错误，问题可能在于：</p>
+            <ul>
+                <li>浏览器缓存（尝试硬刷新：Ctrl+Shift+R）</li>
+                <li>前端 JavaScript 错误（打开浏览器控制台查看）</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        let testResults = {
+            test1: false,
+            test2: false,
+            test3: false,
+            test4: false
+        };
+        
+        function updateStatus(testId, status, message) {
+            const statusEl = document.getElementById(`status${testId}`);
+            statusEl.className = `status ${status}`;
+            statusEl.textContent = message;
+        }
+        
+        function showResult(testId, content) {
+            const resultEl = document.getElementById(`result${testId}`);
+            resultEl.innerHTML = `<pre>${content}</pre>`;
+            resultEl.style.display = 'block';
+        }
+        
+        function runTest1() {
+            updateStatus(1, 'loading', '测试中...');
+            
+            const info = {
+                '当前 URL': window.location.href,
+                '协议': window.location.protocol,
+                '主机': window.location.host,
+                '路径': window.location.pathname,
+                '预期 API 基础 URL': window.location.origin + '/api'
+            };
+            
+            let output = '📍 URL 信息:\n\n';
+            for (const [key, value] of Object.entries(info)) {
+                output += `${key}: ${value}\n`;
+            }
+            
+            output += '\n✅ API 将使用相对路径：/api/notes';
+            output += '\n   完整 URL：' + window.location.origin + '/api/notes';
+            
+            showResult(1, output);
+            updateStatus(1, 'success', '通过');
+            testResults.test1 = true;
+            updateDiagnostics();
+        }
+        
+        async function runTest2() {
+            updateStatus(2, 'loading', '测试中...');
+            
+            try {
+                const startTime = Date.now();
+                const response = await fetch('/api/notes', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+                
+                let output = '📡 请求信息:\n';
+                output += `URL: ${window.location.origin}/api/notes\n`;
+                output += `方法: GET\n`;
+                output += `响应时间: ${duration}ms\n\n`;
+                
+                output += '📨 响应信息:\n';
+                output += `状态码: ${response.status} ${response.statusText}\n`;
+                output += `Content-Type: ${response.headers.get('Content-Type')}\n\n`;
+                
+                output += '📋 响应头:\n';
+                for (const [key, value] of response.headers.entries()) {
+                    output += `${key}: ${value}\n`;
+                }
+                
+                output += '\n📦 响应体:\n';
+                const contentType = response.headers.get('Content-Type');
+                
+                if (response.ok) {
+                    if (contentType && contentType.includes('application/json')) {
+                        const data = await response.json();
+                        output += JSON.stringify(data, null, 2);
+                        output += `\n\n✅ 成功获取 ${Array.isArray(data) ? data.length : 0} 条笔记`;
+                        updateStatus(2, 'success', '通过');
+                        testResults.test2 = true;
+                    } else {
+                        const text = await response.text();
+                        output += text;
+                        output += '\n\n⚠️ 响应不是 JSON 格式';
+                        updateStatus(2, 'error', '失败');
+                    }
+                } else {
+                    const text = await response.text();
+                    output += text;
+                    output += `\n\n❌ 服务器返回错误状态码: ${response.status}`;
+                    
+                    if (response.status === 500) {
+                        output += '\n\n🔧 可能的原因:';
+                        output += '\n1. MONGO_URI 环境变量未在 Vercel 中设置';
+                        output += '\n2. MongoDB Atlas 网络访问限制';
+                        output += '\n3. 数据库连接失败';
+                        output += '\n\n请查看 URGENT_FIX.md 文件获取详细修复步骤';
+                    }
+                    
+                    updateStatus(2, 'error', '失败');
+                }
+                
+                showResult(2, output);
+                
+            } catch (error) {
+                let output = '❌ 请求失败:\n\n';
+                output += `错误类型: ${error.name}\n`;
+                output += `错误消息: ${error.message}\n\n`;
+                
+                if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+                    output += '🔧 这通常表示:\n';
+                    output += '1. CORS 问题\n';
+                    output += '2. 网络连接问题\n';
+                    output += '3. API 端点不存在\n';
+                } else if (error.name === 'SyntaxError') {
+                    output += '🔧 响应不是有效的 JSON 格式\n';
+                }
+                
+                output += '\n完整错误:\n' + error.stack;
+                
+                showResult(2, output);
+                updateStatus(2, 'error', '失败');
+            }
+            
+            updateDiagnostics();
+        }
+        
+        async function runTest3() {
+            updateStatus(3, 'loading', '测试中...');
+            
+            try {
+                const testData = {
+                    title: `测试笔记 - ${new Date().toLocaleString()}`,
+                    content: '这是一个测试笔记，用于验证 API 是否正常工作。'
+                };
+                
+                const response = await fetch('/api/notes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                let output = '📡 请求信息:\n';
+                output += `URL: ${window.location.origin}/api/notes\n`;
+                output += `方法: POST\n`;
+                output += `请求体: ${JSON.stringify(testData, null, 2)}\n\n`;
+                
+                output += '📨 响应信息:\n';
+                output += `状态码: ${response.status} ${response.statusText}\n\n`;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    output += '📦 创建的笔记:\n';
+                    output += JSON.stringify(data, null, 2);
+                    output += `\n\n✅ 成功创建笔记，ID: ${data._id}`;
+                    updateStatus(3, 'success', '通过');
+                    testResults.test3 = true;
+                } else {
+                    const text = await response.text();
+                    output += '❌ 创建失败:\n';
+                    output += text;
+                    updateStatus(3, 'error', '失败');
+                }
+                
+                showResult(3, output);
+                
+            } catch (error) {
+                showResult(3, `❌ 错误: ${error.message}\n\n${error.stack}`);
+                updateStatus(3, 'error', '失败');
+            }
+            
+            updateDiagnostics();
+        }
+        
+        async function runTest4() {
+            updateStatus(4, 'loading', '测试中...');
+            
+            let output = '🌐 浏览器环境信息:\n\n';
+            output += `User Agent: ${navigator.userAgent}\n`;
+            output += `Platform: ${navigator.platform}\n`;
+            output += `Language: ${navigator.language}\n`;
+            output += `Online: ${navigator.onLine}\n`;
+            output += `Cookies Enabled: ${navigator.cookieEnabled}\n\n`;
+            
+            output += '📍 当前页面:\n';
+            output += `URL: ${window.location.href}\n`;
+            output += `Protocol: ${window.location.protocol}\n`;
+            output += `Host: ${window.location.host}\n\n`;
+            
+            output += '🔍 JavaScript Console 检查:\n';
+            output += '请打开浏览器开发者工具（F12）并查看 Console 标签\n';
+            output += '查找任何红色的错误消息\n\n';
+            
+            // Check if CORS is an issue
+            try {
+                await fetch('/api/notes', { method: 'HEAD' });
+                output += '✅ CORS: 没有检测到跨域问题\n';
+            } catch (e) {
+                output += '⚠️ CORS: 可能存在跨域问题\n';
+            }
+            
+            showResult(4, output);
+            updateStatus(4, 'success', '完成');
+            testResults.test4 = true;
+            updateDiagnostics();
+        }
+        
+        function updateDiagnostics() {
+            const allPassed = testResults.test2 && testResults.test3;
+            const anyFailed = !testResults.test2 || !testResults.test3;
+            
+            if (allPassed) {
+                document.getElementById('successResults').style.display = 'block';
+                document.getElementById('diagnosticResults').style.display = 'none';
+            } else if (anyFailed && (testResults.test2 !== undefined || testResults.test3 !== undefined)) {
+                const diagnosticEl = document.getElementById('diagnosticResults');
+                const listEl = document.getElementById('diagnosticList');
+                
+                let items = [];
+                
+                if (!testResults.test2) {
+                    items.push('<li><strong>GET /api/notes 失败</strong>: 无法获取笔记列表。这是最常见的问题。</li>');
+                    items.push('<li>请立即检查 Vercel 环境变量：MONGO_URI 是否正确设置并应用到 Production 环境。</li>');
+                    items.push('<li>查看详细修复步骤：<code>URGENT_FIX.md</code></li>');
+                }
+                
+                if (!testResults.test3 && testResults.test2) {
+                    items.push('<li><strong>POST /api/notes 失败</strong>: 无法创建新笔记。</li>');
+                    items.push('<li>可能是权限问题或数据库写入问题。</li>');
+                }
+                
+                listEl.innerHTML = items.join('');
+                diagnosticEl.style.display = 'block';
+                document.getElementById('successResults').style.display = 'none';
+            }
+        }
+        
+        // Auto-run test 1 on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => runTest1(), 500);
+        });
+    </script>
+</body>
+</html>

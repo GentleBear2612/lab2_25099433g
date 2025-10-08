@@ -1,0 +1,9 @@
+{
+  "name": "lab2_25099433g-vercel",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "mongodb": "^5.10.0",
+    "node-fetch": "^3.4.1"
+  }
+}

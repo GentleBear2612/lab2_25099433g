@@ -96,9 +96,17 @@ def handler(request):
         # Import here to avoid adding logging dependency at module import time
         import sys, traceback
         traceback.print_exc(file=sys.stderr)
+        msg = str(e) or ''
+        # If missing MONGO_URI, return 503 to indicate service unavailable due to config
+        if isinstance(e, RuntimeError) and 'MONGO_URI' in msg:
+            return {
+                'statusCode': 503,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': 'Service unavailable', 'detail': 'MONGO_URI environment variable not configured'})
+            }
         # include short hint in response body to help debugging from client side logs
         return {
             'statusCode': 500,
             'headers': {'Content-Type': 'application/json'},
-            'body': json.dumps({'error': 'Internal server error', 'detail': str(e)})
+            'body': json.dumps({'error': 'Internal server error', 'detail': msg})
         }

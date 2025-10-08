@@ -67,7 +67,11 @@ def _get_query_param(request, name):
 
 
 def handler(request):
-    """Handles GET (list) and POST (create) for /api/notes"""
+    """Handles GET (list) and POST (create) for /api/notes
+    This is a Vercel serverless function handler.
+    """
+    from flask import Response
+    
     try:
         client = get_client()
         db_name = os.environ.get('MONGO_DB_NAME', 'notetaker_db')
@@ -78,20 +82,36 @@ def handler(request):
         if method == 'GET':
             docs = list(coll.find().sort('updated_at', -1).limit(50))
             result = [_serialize_doc(d) for d in docs]
-            return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps(result)}
+            return Response(
+                json.dumps(result),
+                status=200,
+                mimetype='application/json',
+                headers={'Access-Control-Allow-Origin': '*'}
+            )
 
         if method == 'POST':
             data = _parse_json_body(request) or {}
             if not data or 'title' not in data or 'content' not in data:
-                return {'statusCode': 400, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({'error': 'title and content required'})}
+                return Response(
+                    json.dumps({'error': 'title and content required'}),
+                    status=400,
+                    mimetype='application/json',
+                    headers={'Access-Control-Allow-Origin': '*'}
+                )
 
             now = datetime.utcnow()
             doc = {'title': data.get('title'), 'content': data.get('content'), 'created_at': now, 'updated_at': now, 'translations': {}}
             res = coll.insert_one(doc)
             doc['_id'] = res.inserted_id
-            return {'statusCode': 201, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps(_serialize_doc(doc))}
+            return Response(
+                json.dumps(_serialize_doc(doc)),
+                status=201,
+                mimetype='application/json',
+                headers={'Access-Control-Allow-Origin': '*'}
+            )
 
-        return {'statusCode': 405, 'headers': {'Allow': 'GET, POST'}, 'body': ''}
+        return Response('', status=405, headers={'Allow': 'GET, POST'})
+        
     except Exception as e:
         # Import here to avoid adding logging dependency at module import time
         import sys, traceback
@@ -99,14 +119,16 @@ def handler(request):
         msg = str(e) or ''
         # If missing MONGO_URI, return 503 to indicate service unavailable due to config
         if isinstance(e, RuntimeError) and 'MONGO_URI' in msg:
-            return {
-                'statusCode': 503,
-                'headers': {'Content-Type': 'application/json'},
-                'body': json.dumps({'error': 'Service unavailable', 'detail': 'MONGO_URI environment variable not configured'})
-            }
+            return Response(
+                json.dumps({'error': 'Service unavailable', 'detail': 'MONGO_URI environment variable not configured'}),
+                status=503,
+                mimetype='application/json',
+                headers={'Access-Control-Allow-Origin': '*'}
+            )
         # include short hint in response body to help debugging from client side logs
-        return {
-            'statusCode': 500,
-            'headers': {'Content-Type': 'application/json'},
-            'body': json.dumps({'error': 'Internal server error', 'detail': msg})
-        }
+        return Response(
+            json.dumps({'error': 'Internal server error', 'detail': msg}),
+            status=500,
+            mimetype='application/json',
+            headers={'Access-Control-Allow-Origin': '*'}
+        )

@@ -2,6 +2,18 @@
 
 A modern, responsive web application for managing personal notes with a beautiful user interface and full CRUD functionality.
 
+## 🚨 Vercel 部署问题解决
+
+如果您在 Vercel 上遇到 **500 错误**，请查看：
+- 📘 **[FIX_SUMMARY.md](FIX_SUMMARY.md)** - 完整的问题修复总结
+- 📗 **[VERCEL_SETUP.md](VERCEL_SETUP.md)** - 详细的配置指南
+- 📕 **[DEPLOY_VERCEL.md](DEPLOY_VERCEL.md)** - 部署快速指南
+
+**快速修复步骤：**
+1. 在 Vercel Dashboard 中设置环境变量 `MONGO_URI`
+2. 在 MongoDB Atlas 中允许 `0.0.0.0/0` 访问
+3. 重新部署应用
+
 ## 🌟 Features
 
 - **Create Notes**: Add new notes with titles and rich content

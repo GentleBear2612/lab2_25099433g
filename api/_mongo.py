@@ -12,6 +12,10 @@ _client = None
 
 
 def get_client():
+    """
+    Get MongoDB client. Returns a real MongoDB client if MONGO_URI is set,
+    otherwise returns a lightweight in-memory fallback for testing.
+    """
     global _client
     if _client is not None:
         return _client

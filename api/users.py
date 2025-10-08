@@ -5,6 +5,9 @@ from datetime import datetime
 
 
 def handler(request):
+    """Handles GET (list) and POST (create) for /api/users"""
+    from flask import Response
+    
     try:
         client = get_client()
         db_name = os.environ.get('MONGO_DB_NAME', 'notetaker_db')
@@ -19,7 +22,12 @@ def handler(request):
             for d in docs:
                 d['_id'] = str(d.get('_id'))
                 result.append(d)
-            return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps(result)}
+            return Response(
+                json.dumps(result),
+                status=200,
+                mimetype='application/json',
+                headers={'Access-Control-Allow-Origin': '*'}
+            )
 
         if method == 'POST':
             try:
@@ -27,17 +35,38 @@ def handler(request):
             except Exception:
                 body = {}
             if not body or 'username' not in body or 'email' not in body:
-                return {'statusCode': 400, 'body': json.dumps({'error': 'username and email required'})}
+                return Response(
+                    json.dumps({'error': 'username and email required'}),
+                    status=400,
+                    mimetype='application/json',
+                    headers={'Access-Control-Allow-Origin': '*'}
+                )
             doc = {'username': body['username'], 'email': body['email'], 'created_at': datetime.utcnow()}
             res = coll.insert_one(doc)
             doc['_id'] = str(res.inserted_id)
-            return {'statusCode': 201, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps(doc)}
+            return Response(
+                json.dumps(doc),
+                status=201,
+                mimetype='application/json',
+                headers={'Access-Control-Allow-Origin': '*'}
+            )
 
-        return {'statusCode': 405, 'body': ''}
+        return Response('', status=405, headers={'Access-Control-Allow-Origin': '*'})
+        
     except Exception as e:
         import sys, traceback
         traceback.print_exc(file=sys.stderr)
         msg = str(e) or ''
         if isinstance(e, RuntimeError) and 'MONGO_URI' in msg:
-            return {'statusCode': 503, 'body': json.dumps({'error': 'Service unavailable', 'detail': 'MONGO_URI environment variable not configured'})}
-        return {'statusCode': 500, 'body': json.dumps({'error': str(e)})}
+            return Response(
+                json.dumps({'error': 'Service unavailable', 'detail': 'MONGO_URI environment variable not configured'}),
+                status=503,
+                mimetype='application/json',
+                headers={'Access-Control-Allow-Origin': '*'}
+            )
+        return Response(
+            json.dumps({'error': str(e)}),
+            status=500,
+            mimetype='application/json',
+            headers={'Access-Control-Allow-Origin': '*'}
+        )

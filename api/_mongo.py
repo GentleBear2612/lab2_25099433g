@@ -6,10 +6,6 @@ from pymongo import MongoClient
 from bson.objectid import ObjectId
 from datetime import datetime
 from threading import Lock
-import sqlite3
-import json
-import uuid
-from pathlib import Path
 
 # Module-level client to allow reuse across serverless invocations when possible
 _client = None
@@ -24,226 +20,119 @@ def get_client():
     if _client is not None:
         return _client
 
-    uri = os.environ.get('MONGO_URI')
+    # Prefer MONGODB_URI (Vercel integration) but fall back to MONGO_URI for
+    # backwards compatibility with older setups.
+    uri = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI')
     if not uri:
-        # Use SQLite fallback (persistent) when MONGO_URI is not configured.
-        # This implements a very small subset of the MongoDB collection API
-        # expected by the rest of the code (find, find_one, insert_one,
-        # delete_one, find_one_and_update) so the rest of the app doesn't
-        # need to change.
-
-        DB_PATH = Path(__file__).resolve().parents[0].parent / 'database' / 'app.db'
-        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-
-        class SQLiteCollection:
-            def __init__(self, conn, table):
-                self.conn = conn
-                self.table = table
-                self.lock = Lock()
-
-            def _row_to_doc(self, row):
-                if not row:
-                    return None
-                d = dict(row)
-                # unify id field name to _id for compatibility
-                if 'id' in d:
-                    d['_id'] = d.pop('id')
-                # parse json fields
-                if 'translations' in d and d['translations']:
-                    try:
-                        d['translations'] = json.loads(d['translations'])
-                    except Exception:
-                        d['translations'] = {}
-                # parse ISO timestamp strings into datetime objects for compatibility
-                for tkey in ('created_at', 'updated_at'):
-                    val = d.get(tkey)
-                    if isinstance(val, str) and val:
-                        try:
-                            d[tkey] = datetime.fromisoformat(val)
-                        except Exception:
-                            # leave as string if parsing fails
-                            pass
-                return d
+        # Provide a lightweight in-memory fallback client to avoid 500 errors
+        # when running in environments without configured MONGO_URI (useful
+        # for quick debugging or front-end testing). This fallback is NOT
+        # suitable for production (ephemeral, not persisted across invocations).
+        class FakeCollection:
+            def __init__(self):
+                self._docs = []
+                self._lock = Lock()
 
             def find(self, *args, **kwargs):
-                # return a cursor-like object to support sort().limit()
-                cur = self.conn.cursor()
-                with self.lock:
-                    cur.execute(f"SELECT * FROM {self.table}")
-                    rows = [dict(r) for r in cur.fetchall()]
-                return SQLCursor(rows)
+                # return a shallow copy to mimic cursor iteration
+                with self._lock:
+                    return list(self._docs)
 
-            def find_one(self, q=None):
-                with self.lock:
-                    cur = self.conn.cursor()
+            def find_one(self, q):
+                with self._lock:
                     if not q:
-                        cur.execute(f"SELECT * FROM {self.table} LIMIT 1")
-                        row = cur.fetchone()
-                        return self._row_to_doc(row)
-                    _id = q.get('_id')
-                    if _id is not None:
-                        cur.execute(f"SELECT * FROM {self.table} WHERE id = ?", (str(_id),))
-                        return self._row_to_doc(cur.fetchone())
-                    # fallback simple equality match for single key
-                    for k, v in q.items():
-                        cur.execute(f"SELECT * FROM {self.table} WHERE {k} = ? LIMIT 1", (v,))
-                        row = cur.fetchone()
-                        if row:
-                            return self._row_to_doc(row)
+                        return self._docs[0] if self._docs else None
+                    # support lookup by _id
+                    if isinstance(q.get('_id'), ObjectId):
+                        for d in self._docs:
+                            if d.get('_id') == q.get('_id'):
+                                return d
+                    # simple key equality
+                    for d in self._docs:
+                        ok = True
+                        for k, v in q.items():
+                            if d.get(k) != v:
+                                ok = False
+                                break
+                        if ok:
+                            return d
                     return None
 
             def insert_one(self, doc):
-                with self.lock:
-                    _id = str(uuid.uuid4())
-                    now = datetime.utcnow().isoformat()
-                    title = doc.get('title')
-                    content = doc.get('content')
-                    created_at = doc.get('created_at')
-                    updated_at = doc.get('updated_at')
-                    # accept datetime objects
-                    if created_at and hasattr(created_at, 'isoformat'):
-                        created_at = created_at.isoformat()
-                    if updated_at and hasattr(updated_at, 'isoformat'):
-                        updated_at = updated_at.isoformat()
-                    created_at = created_at or now
-                    updated_at = updated_at or created_at
-                    translations = doc.get('translations') or {}
-                    translations_json = json.dumps(translations)
-                    cur = self.conn.cursor()
-                    cur.execute(f"INSERT INTO {self.table} (id, title, content, created_at, updated_at, translations) VALUES (?,?,?,?,?,?)",
-                                (_id, title, content, created_at, updated_at, translations_json))
-                    self.conn.commit()
+                with self._lock:
+                    new = dict(doc)
+                    new['_id'] = ObjectId()
+                    # ensure timestamps
+                    if 'created_at' not in new:
+                        new['created_at'] = datetime.utcnow()
+                    if 'updated_at' not in new:
+                        new['updated_at'] = new['created_at']
+                    self._docs.append(new)
                     class R: pass
-                    r = R(); r.inserted_id = _id
+                    r = R()
+                    r.inserted_id = new['_id']
                     return r
 
             def delete_one(self, q):
-                with self.lock:
-                    _id = q.get('_id')
-                    cur = self.conn.cursor()
-                    if _id is None:
-                        return type('Res', (), {'deleted_count': 0})()
-                    cur.execute(f"DELETE FROM {self.table} WHERE id = ?", (str(_id),))
-                    self.conn.commit()
-                    return type('Res', (), {'deleted_count': cur.rowcount})()
+                with self._lock:
+                    target = None
+                    if isinstance(q.get('_id'), ObjectId):
+                        for d in self._docs:
+                            if d.get('_id') == q.get('_id'):
+                                target = d
+                                break
+                    if target:
+                        self._docs.remove(target)
+                        class Res: pass
+                        r = Res(); r.deleted_count = 1
+                        return r
+                    class Res: pass
+                    r = Res(); r.deleted_count = 0
+                    return r
 
             def find_one_and_update(self, q, update, return_document=None):
-                with self.lock:
+                with self._lock:
                     doc = self.find_one(q)
                     if not doc:
                         return None
+                    # apply $set
                     sets = update.get('$set', {})
-                    # apply nested keys like translations.en
                     for k, v in sets.items():
+                        # support nested translations.* keys
                         if '.' in k:
                             parts = k.split('.')
-                            curd = doc
+                            cur = doc
                             for p in parts[:-1]:
-                                if p not in curd or not isinstance(curd[p], dict):
-                                    curd[p] = {}
-                                curd = curd[p]
-                            curd[parts[-1]] = v
+                                if p not in cur or not isinstance(cur[p], dict):
+                                    cur[p] = {}
+                                cur = cur[p]
+                            cur[parts[-1]] = v
                         else:
                             doc[k] = v
-                    # persist back to db
-                    translations = json.dumps(doc.get('translations', {}))
-                    # ensure updated_at is an ISO string when saving
-                    updated_at_val = doc.get('updated_at')
-                    if hasattr(updated_at_val, 'isoformat'):
-                        updated_at_val = updated_at_val.isoformat()
-                    cur = self.conn.cursor()
-                    cur.execute(f"UPDATE {self.table} SET title = ?, content = ?, updated_at = ?, translations = ? WHERE id = ?",
-                                (doc.get('title'), doc.get('content'), updated_at_val, translations, str(doc.get('_id'))))
-                    self.conn.commit()
                     return doc
 
-        class SQLCursor:
-            def __init__(self, rows):
-                # rows are plain dicts from sqlite
-                self._rows = rows
-                self._limit = None
+        class FakeDB:
+            def __init__(self):
+                self.notes = FakeCollection()
+                self.users = FakeCollection()
 
-            def sort(self, key, direction=None):
-                reverse = True if direction and int(direction) < 0 else False
-                # support nested keys but keep simple
-                self._rows.sort(key=lambda r: r.get(key) or '', reverse=reverse)
-                return self
-
-            def limit(self, n):
-                try:
-                    self._limit = int(n)
-                except Exception:
-                    self._limit = None
-                return self
-
-            def __iter__(self):
-                rows = self._rows
-                if self._limit is not None:
-                    rows = rows[:self._limit]
-                for r in rows:
-                    # convert sqlite row dict to expected doc shape
-                    d = dict(r)
-                    if 'id' in d:
-                        d['_id'] = d.pop('id')
-                    if 'translations' in d and d['translations']:
-                        try:
-                            d['translations'] = json.loads(d['translations'])
-                        except Exception:
-                            d['translations'] = {}
-                    # convert ISO timestamps into datetime objects where possible
-                    for tkey in ('created_at', 'updated_at'):
-                        val = d.get(tkey)
-                        if isinstance(val, str) and val:
-                            try:
-                                d[tkey] = datetime.fromisoformat(val)
-                            except Exception:
-                                pass
-                    yield d
-
-        class SQLiteDB:
-            def __init__(self, conn):
-                self._conn = conn
-
-            def get_collection(self, name):
-                return SQLiteCollection(self._conn, name)
-
-        class SQLiteClient:
-            def __init__(self, path):
-                # allow access from multiple threads
-                self.conn = sqlite3.connect(str(path), check_same_thread=False)
-                self.conn.row_factory = sqlite3.Row
-                self._ensure_tables()
-
-            def _ensure_tables(self):
-                cur = self.conn.cursor()
-                cur.execute('''CREATE TABLE IF NOT EXISTS notes (
-                    id TEXT PRIMARY KEY,
-                    title TEXT,
-                    content TEXT,
-                    created_at TEXT,
-                    updated_at TEXT,
-                    translations TEXT
-                )''')
-                cur.execute('''CREATE TABLE IF NOT EXISTS users (
-                    id TEXT PRIMARY KEY,
-                    username TEXT,
-                    email TEXT,
-                    created_at TEXT
-                )''')
-                self.conn.commit()
+        class FakeClient:
+            def __init__(self):
+                self._db = FakeDB()
 
             def __getitem__(self, name):
-                return SQLiteDB(self.conn)
+                return self._db
 
             def get_database(self, name):
-                return SQLiteDB(self.conn)
+                return self._db
 
             def admin(self):
                 class A: pass
                 return A()
 
-        print('INFO: MONGO_URI not set — using SQLite fallback at %s' % DB_PATH, file=sys.stderr)
-        _client = SQLiteClient(DB_PATH)
+        # warn in logs but allow fallback
+        print('WARNING: No MongoDB URI found (checked MONGODB_URI then MONGO_URI) — using in-memory fallback (ephemeral).', file=sys.stderr)
+        _client = FakeClient()
         return _client
 
     try:

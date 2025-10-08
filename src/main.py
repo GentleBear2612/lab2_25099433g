@@ -22,10 +22,19 @@ app.config['SECRET_KEY'] = 'asdf#FGSgvasgf$5$WGT'
 # Enable CORS for all routes
 CORS(app)
 
-# Configure MongoDB connection via environment variable MONGO_URI
-# Example MONGO_URI: mongodb+srv://user:pass@cluster0.mongodb.net/mydb?retryWrites=true&w=majority
-MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017')
+# Configure MongoDB connection via environment variables.
+# Prefer MONGODB_URI (used by Vercel official integration). Fall back to MONGO_URI
+# for backwards compatibility, then to a local default.
+MONGO_URI = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI') or 'mongodb://localhost:27017'
 MONGO_DB_NAME = os.environ.get('MONGO_DB_NAME', 'notetaker_db')
+
+# Log which environment variable was used so Vercel logs make diagnosis easier
+if os.environ.get('MONGODB_URI'):
+    print('Using MONGODB_URI from environment')
+elif os.environ.get('MONGO_URI'):
+    print('Using legacy MONGO_URI from environment')
+else:
+    print('No MongoDB env var found; defaulting to mongodb://localhost:27017')
 
 
 def init_mongo_client(uri, attempts=3, server_selection_timeout_ms=5000, connect_timeout_ms=10000):

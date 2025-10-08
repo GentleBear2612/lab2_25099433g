@@ -204,6 +204,16 @@
             color: white;
         }
 
+        .btn-translate {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-translate:hover {
+            background: #0069d9;
+            transform: translateY(-1px);
+        }
+
         .btn-clear:hover {
             background: #5a6268;
             transform: translateY(-1px);
@@ -350,16 +360,27 @@
             </div>
 
             <div class="note-editor">
-                <div class="editor-header">
+                    <div class="editor-header">
                     <h2 class="editor-title" id="editorTitle">Select a note to edit</h2>
                     <div class="editor-actions" id="editorActions" style="display: none;">
                         <button class="btn btn-save" id="saveBtn">💾 Save</button>
+                        <button class="btn btn-translate" id="translateBtn">🌐 Translate</button>
+                        <label for="translateTo" style="align-self:center; font-weight:600; margin-left:6px; margin-right:6px; color:#333;">→</label>
+                        <select id="translateTo" style="padding:8px 10px; border-radius:8px; border:1px solid #ddd; font-size:14px;">
+                            <option value="English">中文 → English</option>
+                            <option value="Chinese">English → 中文</option>
+                        </select>
                         <button class="btn btn-clear" id="clearBtn">Clear</button>
                         <button class="btn btn-delete" id="deleteBtn">🗑️ Delete</button>
                     </div>
                 </div>
 
                 <div id="messageArea"></div>
+
+                <div id="translationArea" style="display:none; margin-top: 12px;">
+                    <h4>Translation</h4>
+                    <div id="translationContent" class="form-textarea" style="min-height:120px; background:#f7f9fc; white-space:pre-wrap;"></div>
+                </div>
 
                 <div id="editorForm" style="display: none;">
                     <div class="form-group">
@@ -398,6 +419,8 @@
             bindEvents() {
                 document.getElementById('newNoteBtn').addEventListener('click', () => this.createNewNote());
                 document.getElementById('saveBtn').addEventListener('click', () => this.saveNote());
+                const translateBtn = document.getElementById('translateBtn');
+                if (translateBtn) translateBtn.addEventListener('click', () => this.requestTranslation());
                 document.getElementById('deleteBtn').addEventListener('click', () => this.deleteNote());
                 document.getElementById('clearBtn').addEventListener('click', () => this.clearInputs());
                 document.getElementById('searchBox').addEventListener('input', (e) => this.searchNotes(e.target.value));
@@ -445,7 +468,7 @@
 
                 notesList.innerHTML = this.notes.map(note => `
                     <div class="note-item ${this.currentNote && this.currentNote.id === note.id ? 'active' : ''}" 
-                         data-note-id="${note.id}" onclick="noteTaker.selectNote(${note.id})">
+                         data-note-id="${note.id}" onclick="noteTaker.selectNote('${note.id}')">
                         <div class="note-title">${this.escapeHtml(note.title || 'Untitled')}</div>
                         <div class="note-preview">${this.escapeHtml(note.content || 'No content')}</div>
                         <div class="note-date">${this.formatDate(note.updated_at)}</div>
@@ -469,6 +492,11 @@
                 document.getElementById('noteTitle').value = note.title || '';
                 document.getElementById('noteContent').value = note.content || '';
                 document.getElementById('editorTitle').textContent = note.title || 'Untitled Note';
+                // hide previous translation when switching notes
+                this.hideTranslation();
+                // Ensure translate button is visible
+                const translateBtn = document.getElementById('translateBtn');
+                if (translateBtn) translateBtn.style.display = 'inline-block';
             }
 
             createNewNote() {
@@ -486,6 +514,11 @@
                 const clearBtn = document.getElementById('clearBtn');
                 if (deleteBtn) deleteBtn.style.display = 'none';
                 if (clearBtn) clearBtn.style.display = 'inline-block';
+                // hide translate controls when creating new note
+                const translateBtn = document.getElementById('translateBtn');
+                const toSelect = document.getElementById('translateTo');
+                if (translateBtn) translateBtn.style.display = 'none';
+                if (toSelect) toSelect.style.display = 'none';
                 document.getElementById('noteTitle').value = '';
                 document.getElementById('noteContent').value = '';
                 document.getElementById('editorTitle').textContent = 'New Note';
@@ -512,6 +545,9 @@
                 // hide clear button when editor is hidden
                 const clearBtn = document.getElementById('clearBtn');
                 if (clearBtn) clearBtn.style.display = 'none';
+                const translateBtn = document.getElementById('translateBtn');
+                if (translateBtn) translateBtn.style.display = 'none';
+                this.hideTranslation();
             }
 
             clearInputs() {
@@ -582,13 +618,28 @@
                         this.showMessage('Note saved successfully!', 'success');
                     }
 
+                    // show translate button only when updating an existing note (not when creating)
+                    const translateBtn = document.getElementById('translateBtn');
+                    const toSelect = document.getElementById('translateTo');
+                    if (!isCreating) {
+                        if (translateBtn) translateBtn.style.display = 'inline-block';
+                        if (toSelect) toSelect.style.display = 'inline-block';
+                    } else {
+                        // keep hidden for newly created note since editor will be hidden
+                        if (translateBtn) translateBtn.style.display = 'none';
+                        if (toSelect) toSelect.style.display = 'none';
+                    }
+
                     // If we just created a new note (not an autosave), clear the input fields
                     // and close the editor so the inputs are empty for the next entry.
                     if (isCreating && !isAutoSave) {
-                        document.getElementById('noteTitle').value = '';
-                        document.getElementById('noteContent').value = '';
-                        // hide editor resets currentNote to null and shows empty state
-                        this.hideEditor();
+                        // Keep the editor open for newly created note and set its id so it becomes an "existing" note.
+                        // The server returns the saved note with an id; we already set this.currentNote = savedNote above.
+                        // Show translate controls now that the note exists.
+                        if (translateBtn) translateBtn.style.display = 'inline-block';
+                        if (toSelect) toSelect.style.display = 'inline-block';
+                        // ensure delete button visible
+                        if (deleteBtn) deleteBtn.style.display = 'inline-block';
                     }
                 } catch (error) {
                     this.showMessage(`Error saving note: ${error.message}`, 'error');
@@ -615,6 +666,84 @@
                 } catch (error) {
                     this.showMessage(`Error deleting note: ${error.message}`, 'error');
                 }
+                this.hideTranslation();
+            }
+
+            async requestTranslation() {
+                if (!this.currentNote || !this.currentNote.id) {
+                    this.showMessage('Please save the note before translating.', 'error');
+                    return;
+                }
+
+                try {
+                    this.showMessage('Translating...', 'loading');
+                    // read selected target language
+                    const toSelect = document.getElementById('translateTo');
+                    const targetLang = toSelect ? toSelect.value : 'English';
+
+                    const response = await fetch(`/api/notes/${this.currentNote.id}/translate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ to: targetLang })
+                    });
+
+                    if (!response.ok) {
+                        const err = await response.json().catch(() => ({}));
+                        throw new Error(err.error || 'Translation failed');
+                    }
+
+                    const data = await response.json();
+                    const translatedText = data.translated_content || data.translated || '';
+                    this.showTranslation(translatedText);
+
+                    // Persist the translation into the note document via a PUT update
+                    try {
+                        const translationsUpdate = { translations: {} };
+                        translationsUpdate.translations[targetLang] = translatedText;
+
+                        const putResp = await fetch(`/api/notes/${this.currentNote.id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(translationsUpdate)
+                        });
+                        if (putResp.ok) {
+                            // After persisting, reload notes from server to reflect DB state
+                            await this.loadNotes();
+                            // re-select the note so editor and translation area sync with server data
+                            const refreshed = this.notes.find(n => n.id === this.currentNote.id);
+                            if (refreshed) {
+                                this.currentNote = refreshed;
+                                document.getElementById('noteTitle').value = refreshed.title || '';
+                                document.getElementById('noteContent').value = refreshed.content || '';
+                                // show the persisted translation from refreshed data if present
+                                const txt = (refreshed.translations && refreshed.translations[targetLang]) || translatedText;
+                                this.showTranslation(txt);
+                            }
+                        } else {
+                            console.warn('PUT translations failed', putResp.status);
+                        }
+                    } catch (e) {
+                        console.warn('Failed to persist translation:', e);
+                    }
+
+                    this.hideMessage();
+                } catch (error) {
+                    this.showMessage(`Translation error: ${error.message}`, 'error');
+                }
+            }
+
+            showTranslation(text) {
+                const area = document.getElementById('translationArea');
+                const content = document.getElementById('translationContent');
+                if (content) content.textContent = text;
+                if (area) area.style.display = 'block';
+            }
+
+            hideTranslation() {
+                const area = document.getElementById('translationArea');
+                const content = document.getElementById('translationContent');
+                if (content) content.textContent = '';
+                if (area) area.style.display = 'none';
             }
 
             searchNotes(query) {
@@ -632,7 +761,7 @@
 
                 notesList.innerHTML = filteredNotes.map(note => `
                     <div class="note-item ${this.currentNote && this.currentNote.id === note.id ? 'active' : ''}" 
-                         data-note-id="${note.id}" onclick="noteTaker.selectNote(${note.id})">
+                         data-note-id="${note.id}" onclick="noteTaker.selectNote('${note.id}')">
                         <div class="note-title">${this.escapeHtml(note.title || 'Untitled')}</div>
                         <div class="note-preview">${this.escapeHtml(note.content || 'No content')}</div>
                         <div class="note-date">${this.formatDate(note.updated_at)}</div>

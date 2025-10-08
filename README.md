@@ -87,7 +87,26 @@ notetaking-app/
 5. **Access the application**
    - Open your browser and go to `http://localhost:5001`
 
-## 📡 API Endpoints
+## � Command-line translator (src/llm.py)
+
+You can use `src/llm.py` to translate text using the configured LLM. The script reads `GITHUB_TOKEN` from the environment by default, or you can pass `--token` on the command line.
+
+Examples (PowerShell):
+
+```powershell
+# Pass text via argument
+python -u src/llm.py --text "测试" --to English
+
+# Pipe text via stdin
+echo "测试" | python -u src/llm.py --to English
+
+# Provide token on the command line (overrides env)
+python -u src/llm.py --text "测试" --to English --token <YOUR_TOKEN>
+```
+
+If neither a token nor the `GITHUB_TOKEN` environment variable is set, the script will print a friendly error telling you how to provide one.
+
+## �📡 API Endpoints
 
 ### Notes API
 - `GET /api/notes` - Get all notes

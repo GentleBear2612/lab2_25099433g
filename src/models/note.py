@@ -1,23 +1,26 @@
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-from src.models.user import db
+from bson import ObjectId
 
-class Note(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
-    content = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    def __repr__(self):
-        return f'<Note {self.title}>'
-    
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'title': self.title,
-            'content': self.content,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
-        }
+
+def doc_to_dict(doc):
+    if not doc:
+        return None
+    return {
+        'id': str(doc.get('_id')),
+        'title': doc.get('title', ''),
+        'content': doc.get('content', ''),
+        'created_at': doc.get('created_at').isoformat() if doc.get('created_at') else None,
+        'updated_at': doc.get('updated_at').isoformat() if doc.get('updated_at') else None,
+        'translations': doc.get('translations', {})
+    }
+
+
+def make_note_doc(title, content):
+    now = datetime.utcnow()
+    return {
+        'title': title,
+        'content': content,
+        'created_at': now,
+        'updated_at': now
+    }
 

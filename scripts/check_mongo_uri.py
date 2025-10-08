@@ -34,15 +34,15 @@ try:
     # PyMongo exposes cluster nodes via client.nodes (set of (host,port)) for standard connections
     nodes = getattr(client, 'nodes', None)
     print('Discovered nodes:', nodes)
-    # For SRV, client.address may be None; try client._topology_settings if available
-    try:
-        ts = client._Toplogy__settings
-    except Exception:
-        try:
-            ts = client._topology_settings
-        except Exception:
-            ts = None
-    print('Topology settings:', ts)
+    # For SRV connections the public topology settings are internal; try to
+    # access them safely via getattr to avoid AttributeError on different
+    # PyMongo versions or private attribute name changes.
+    ts = getattr(client, '_topology_settings', None)
+    # Some PyMongo builds may expose a mangled private name; attempt common
+    # alternative as a fallback without raising.
+    if ts is None:
+        ts = getattr(client, '_Topology__settings', None)
+    print('Topology settings (internal):', ts)
 except Exception as e:
     print('Connection failed or timed out:', e)
 finally:

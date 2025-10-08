@@ -1,9 +1,13 @@
 {
-  "name": "lab2_25099433g-vercel",
-  "version": "1.0.0",
+  "name": "lab2_25099433g",
+  "version": "0.0.0",
   "private": true,
-  "dependencies": {
-    "mongodb": "^5.9.0",
-    "node-fetch": "^3.4.1"
-  }
+  "description": "Minimal package.json to stabilize Vercel build (no node dependencies)",
+  "engines": {
+    "node": "18.x"
+  },
+  "scripts": {
+    "vercel-build": "echo 'no build'"
+  },
+  "dependencies": {}
 }

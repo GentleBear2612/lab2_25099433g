@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 from dotenv import load_dotenv
 # DON'T CHANGE THIS !!!
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
@@ -26,7 +27,41 @@ CORS(app)
 MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017')
 MONGO_DB_NAME = os.environ.get('MONGO_DB_NAME', 'notetaker_db')
 
-client = MongoClient(MONGO_URI)
+
+def init_mongo_client(uri, attempts=3, server_selection_timeout_ms=5000, connect_timeout_ms=10000):
+    """Initialize a MongoClient with retries and tuned timeouts.
+
+    - server_selection_timeout_ms controls how long PyMongo will wait for server selection.
+    - connect_timeout_ms controls the underlying socket connect timeout.
+    The function will try up to `attempts` times (exponential backoff) and will
+    exit the process with non-zero code if unable to connect. This avoids long
+    import-time blocking and provides clearer diagnostic messages.
+    """
+    if not uri:
+        print('MONGO_URI not set, using default mongodb://localhost:27017')
+        uri = 'mongodb://localhost:27017'
+
+    for i in range(attempts):
+        try:
+            print(f'Attempting MongoDB connection (attempt {i+1}/{attempts})...')
+            client = MongoClient(uri, serverSelectionTimeoutMS=server_selection_timeout_ms, connectTimeoutMS=connect_timeout_ms)
+            # Force server selection / quick health check
+            client.admin.command('ping')
+            print('MongoDB connection established')
+            return client
+        except Exception as e:
+            print(f'MongoDB connection attempt {i+1} failed: {e}')
+            if i < attempts - 1:
+                backoff = min(5, (2 ** i))
+                print(f'Retrying in {backoff}s...')
+                time.sleep(backoff)
+
+    print(f'Failed to establish MongoDB connection after {attempts} attempts. Exiting.')
+    sys.exit(1)
+
+
+# Initialize the client with short server selection timeout and a few retries
+client = init_mongo_client(MONGO_URI, attempts=int(os.environ.get('MONGO_CONNECT_ATTEMPTS', '3')))
 db = client[MONGO_DB_NAME]
 
 # Make the db available to routes via app.config

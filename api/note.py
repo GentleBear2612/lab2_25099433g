@@ -89,4 +89,9 @@ def handler(request):
 
         return {'statusCode': 405, 'body': ''}
     except Exception as e:
-        return {'statusCode': 500, 'body': json.dumps({'error': str(e)})}
+        import sys, traceback
+        traceback.print_exc(file=sys.stderr)
+        msg = str(e) or ''
+        if isinstance(e, RuntimeError) and 'MONGO_URI' in msg:
+            return {'statusCode': 503, 'body': json.dumps({'error': 'Service unavailable', 'detail': 'MONGO_URI environment variable not configured'})}
+        return {'statusCode': 500, 'body': json.dumps({'error': msg})}

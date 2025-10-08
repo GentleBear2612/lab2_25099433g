@@ -14,3 +14,4 @@ openai==1.106.1
 dotenv==0.9.9
 pymongo==4.7.0
 dnspython==2.3.0
+certifi

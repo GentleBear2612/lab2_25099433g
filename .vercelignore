@@ -1,0 +1,16 @@
+node_modules
+.venv
+env
+venv
+dist
+build
+.pytest_cache
+.git
+.github
+__pycache__
+*.pyc
+tests
+database/app.db
+database/app.db.bak
+README.md
+lab2_writeup.md

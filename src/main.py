@@ -26,30 +26,30 @@ CORS(app)
 MONGO_URI = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI')
 MONGO_DB_NAME = os.environ.get('MONGO_DB_NAME', 'notetaker_db')
 
-# Validate MongoDB URI is configured
-if not MONGO_URI:
-    print("⚠ WARNING: MongoDB connection string not configured.")
-    print("   Set MONGODB_URI environment variable for database access.")
-    print("   API will fail until this is configured.")
-    # Don't raise error immediately - let the app start but fail on actual DB operations
-    # This allows Vercel to show a better error message
-    db = None
-else:
+print(f"[MongoDB] MONGO_URI configured: {bool(MONGO_URI)}")
+print(f"[MongoDB] Database name: {MONGO_DB_NAME}")
+
+# Initialize MongoDB client lazily
+client = None
+db = None
+
+if MONGO_URI:
     try:
-        print(f"[MongoDB] Connecting to database '{MONGO_DB_NAME}'...")
-        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-        # Test the connection
-        client.admin.command('ping')
+        print(f"[MongoDB] Creating MongoDB client...")
+        # Don't connect immediately - let pymongo connect lazily on first operation
+        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000, connectTimeoutMS=10000)
         db = client[MONGO_DB_NAME]
-        print(f"✓ Successfully connected to MongoDB: {MONGO_DB_NAME}")
+        print(f"[MongoDB] ✓ Client created (will connect on first use)")
     except Exception as e:
-        print(f"✗ Failed to connect to MongoDB: {e}")
-        print(f"   URI (masked): {MONGO_URI[:30]}...{MONGO_URI[-20:]}")
-        # Don't raise - let the app start but operations will fail
+        print(f"[MongoDB] ✗ Client creation failed: {e}")
         db = None
+else:
+    print("[MongoDB] ⚠ WARNING: No MONGODB_URI environment variable set")
+    print("[MongoDB]    API endpoints will return 503 errors")
 
 # Make the db available to routes via app.config
 app.config['MONGO_DB'] = db
+app.config['MONGO_URI_CONFIGURED'] = bool(MONGO_URI)
 
 # Health check endpoint
 @app.route('/api/health', methods=['GET'])
@@ -58,12 +58,28 @@ def health_check():
     status = {
         'status': 'ok',
         'service': 'NoteTaker API',
-        'database': 'connected' if db is not None else 'disconnected'
+        'mongodb_uri_set': app.config.get('MONGO_URI_CONFIGURED', False),
+        'database': 'not_tested'
     }
-    if db is None:
+    
+    # Try to connect to database
+    if db is not None:
+        try:
+            # Test connection with a simple operation
+            db.command('ping')
+            status['database'] = 'connected'
+            status['status'] = 'healthy'
+        except Exception as e:
+            status['database'] = 'error'
+            status['database_error'] = str(e)
+            status['status'] = 'degraded'
+            return jsonify(status), 503
+    else:
+        status['database'] = 'not_configured'
         status['status'] = 'degraded'
-        status['message'] = 'Database not connected - check MONGODB_URI environment variable'
+        status['message'] = 'MONGODB_URI environment variable not set'
         return jsonify(status), 503
+    
     return jsonify(status), 200
 
 # register blueprints (import after db is configured to avoid circular imports)

@@ -6,14 +6,23 @@ user_bp = Blueprint('user', __name__)
 
 
 def users_collection():
-    return current_app.config['MONGO_DB'].users
+    """Get users collection with error handling"""
+    db = current_app.config.get('MONGO_DB')
+    if db is None:
+        raise RuntimeError("Database not connected. Please check MONGODB_URI environment variable.")
+    return db.users
 
 
 @user_bp.route('/users', methods=['GET'])
 def get_users():
-    coll = users_collection()
-    docs = coll.find()
-    return jsonify([user_doc_to_dict(d) for d in docs])
+    try:
+        coll = users_collection()
+        docs = coll.find()
+        return jsonify([user_doc_to_dict(d) for d in docs])
+    except RuntimeError as e:
+        return jsonify({'error': str(e), 'type': 'configuration_error'}), 503
+    except Exception as e:
+        return jsonify({'error': str(e), 'type': 'server_error'}), 500
 
 
 @user_bp.route('/users', methods=['POST'])

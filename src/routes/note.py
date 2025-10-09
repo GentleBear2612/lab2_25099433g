@@ -9,15 +9,24 @@ note_bp = Blueprint('note', __name__)
 
 
 def notes_collection():
-    return current_app.config['MONGO_DB'].notes
+    """Get notes collection with error handling"""
+    db = current_app.config.get('MONGO_DB')
+    if db is None:
+        raise RuntimeError("Database not connected. Please check MONGODB_URI environment variable.")
+    return db.notes
 
 
 @note_bp.route('/notes', methods=['GET'])
 def get_notes():
     """Get all notes, ordered by most recently updated"""
-    coll = notes_collection()
-    docs = coll.find().sort('updated_at', -1)
-    return jsonify([doc_to_dict(d) for d in docs])
+    try:
+        coll = notes_collection()
+        docs = coll.find().sort('updated_at', -1)
+        return jsonify([doc_to_dict(d) for d in docs])
+    except RuntimeError as e:
+        return jsonify({'error': str(e), 'type': 'configuration_error'}), 503
+    except Exception as e:
+        return jsonify({'error': str(e), 'type': 'server_error'}), 500
 
 
 @note_bp.route('/notes', methods=['POST'])

@@ -1,48 +1,49 @@
 """
 Vercel serverless function entry point for Flask application.
-This file is the entry point for Vercel's Python runtime.
 """
 import os
 import sys
 import traceback
 
-print("=" * 80)
-print("[Vercel] Starting initialization...")
-print("=" * 80)
+print("[Vercel] Starting...")
 
-# Add the parent directory to the path so we can import from src
+# Setup path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
-
-print(f"[Vercel] Python: {sys.version}")
-print(f"[Vercel] Current dir: {current_dir}")
-print(f"[Vercel] Parent dir: {parent_dir}")
-
 sys.path.insert(0, parent_dir)
 
-# Import Flask app
-print("[Vercel] Importing src.main...")
+print(f"[Vercel] Python {sys.version}")
+print(f"[Vercel] Importing src.main...")
+
+# Try to import the main app
+app = None
+import_error_msg = None
+import_error_type = None
+
 try:
-    from src.main import app
-    print("[Vercel] ✓ src.main imported successfully!")
-    print(f"[Vercel] ✓ app type: {type(app)}")
-except Exception as import_error:
-    print(f"[Vercel] ✗ Import failed: {import_error}")
+    from src.main import app as main_app
+    app = main_app
+    print("[Vercel] ✓ Main app imported successfully")
+except Exception as e:
+    import_error_msg = str(e)
+    import_error_type = type(e).__name__
+    print(f"[Vercel] ✗ Import failed: {e}")
     traceback.print_exc()
-    
-    # Create minimal fallback
+
+# If import failed, create fallback app
+if app is None:
+    print("[Vercel] Creating fallback app...")
     from flask import Flask, jsonify
     app = Flask(__name__)
     
-    @app.route('/<path:path>', defaults={'path': ''})
-    @app.route('/', methods=['GET', 'POST', 'PUT', 'DELETE'])
+    @app.route('/<path:path>')
+    @app.route('/')
     def fallback(path=''):
         return jsonify({
             'error': 'Application import failed',
-            'message': str(import_error),
-            'type': type(import_error).__name__
-        }), 500
+            'message': import_error_msg or 'Unknown error',
+            'type': import_error_type or 'Unknown',
+            'help': 'Check Vercel function logs for details'
+        }), 503
 
-print("=" * 80)
-print("[Vercel] Initialization complete!")
-print("=" * 80)
+print("[Vercel] Ready!")

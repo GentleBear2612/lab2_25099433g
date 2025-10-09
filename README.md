@@ -2,6 +2,18 @@
 
 A modern, responsive web application for managing personal notes with a beautiful user interface and full CRUD functionality.
 
+## 🚀 部署选项
+
+### Vercel + MongoDB Atlas（推荐用于生产环境）
+本应用现在支持部署到 Vercel 并使用 MongoDB Atlas 作为云数据库！
+
+**快速部署：** 查看 [QUICK_START.md](QUICK_START.md)
+
+**完整指南：**
+- 📖 [Vercel 部署指南](VERCEL_DEPLOYMENT.md)
+- ✅ [部署检查清单](DEPLOYMENT_CHECKLIST.md)
+- 🔧 [环境变量配置](VERCEL_ENV_SETUP.md)
+
 ## 🌟 Features
 
 - **Create Notes**: Add new notes with titles and rich content

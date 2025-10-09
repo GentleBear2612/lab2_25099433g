@@ -21,9 +21,9 @@ app.config['SECRET_KEY'] = 'asdf#FGSgvasgf$5$WGT'
 # Enable CORS for all routes
 CORS(app)
 
-# Configure MongoDB connection via environment variable MONGO_URI
+# Configure MongoDB connection via environment variable MONGO_URI or MONGODB_URI
 # Example MONGO_URI: mongodb+srv://user:pass@cluster0.mongodb.net/mydb?retryWrites=true&w=majority
-MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017')
+MONGO_URI = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI', 'mongodb://localhost:27017')
 MONGO_DB_NAME = os.environ.get('MONGO_DB_NAME', 'notetaker_db')
 
 client = MongoClient(MONGO_URI)

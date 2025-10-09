@@ -18,3 +18,5 @@ tests/
 scripts/
 database/
 node_modules/
+# 不要忽略 public 目录（静态文件）
+!public/

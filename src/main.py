@@ -23,11 +23,26 @@ CORS(app)
 
 # Configure MongoDB connection via environment variable MONGO_URI or MONGODB_URI
 # Example MONGO_URI: mongodb+srv://user:pass@cluster0.mongodb.net/mydb?retryWrites=true&w=majority
-MONGO_URI = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI', 'mongodb://localhost:27017')
+MONGO_URI = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI')
 MONGO_DB_NAME = os.environ.get('MONGO_DB_NAME', 'notetaker_db')
 
-client = MongoClient(MONGO_URI)
-db = client[MONGO_DB_NAME]
+# Validate MongoDB URI is configured
+if not MONGO_URI:
+    raise ValueError(
+        "MongoDB connection string not configured. "
+        "Please set MONGODB_URI or MONGO_URI environment variable. "
+        "Example: mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true&w=majority"
+    )
+
+try:
+    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+    # Test the connection
+    client.admin.command('ping')
+    db = client[MONGO_DB_NAME]
+    print(f"✓ Successfully connected to MongoDB: {MONGO_DB_NAME}")
+except Exception as e:
+    print(f"✗ Failed to connect to MongoDB: {e}")
+    raise
 
 # Make the db available to routes via app.config
 app.config['MONGO_DB'] = db

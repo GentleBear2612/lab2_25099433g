@@ -92,5 +92,5 @@ print("=" * 80)
 print("[Vercel] Initialization complete!")
 print("=" * 80)
 
-# Export for Vercel
-app = app
+# Export for Vercel - use the imported app directly
+# Don't reassign, just ensure it's in module scope

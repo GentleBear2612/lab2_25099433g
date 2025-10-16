@@ -353,6 +353,11 @@
             <div class="sidebar">
                 <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search notes...">
                 <button class="new-note-btn" id="newNoteBtn">✨ New Note</button>
+                <div class="form-group" style="margin-top:12px;">
+                    <label class="form-label" for="aiPrompt">Generate with AI</label>
+                    <input type="text" class="form-input" id="aiPrompt" placeholder="Describe the note to generate...">
+                    <button class="new-note-btn" id="generateBtn" style="margin-top:8px;">🤖 Generate</button>
+                </div>
                 
                 <div class="notes-list" id="notesList">
                     <div class="loading">Loading notes...</div>
@@ -419,6 +424,10 @@
             bindEvents() {
                 document.getElementById('newNoteBtn').addEventListener('click', () => this.createNewNote());
                 document.getElementById('saveBtn').addEventListener('click', () => this.saveNote());
+                const genBtn = document.getElementById('generateBtn');
+                const aiPrompt = document.getElementById('aiPrompt');
+                if (genBtn) genBtn.addEventListener('click', () => this.generateNote());
+                if (aiPrompt) aiPrompt.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); this.generateNote(); } });
                 const translateBtn = document.getElementById('translateBtn');
                 if (translateBtn) translateBtn.addEventListener('click', () => this.requestTranslation());
                 document.getElementById('deleteBtn').addEventListener('click', () => this.deleteNote());
@@ -643,6 +652,48 @@
                     }
                 } catch (error) {
                     this.showMessage(`Error saving note: ${error.message}`, 'error');
+                }
+            }
+
+            async generateNote() {
+                const promptEl = document.getElementById('aiPrompt');
+                const prompt = promptEl ? promptEl.value.trim() : '';
+                if (!prompt) {
+                    this.showMessage('Please enter a prompt to generate a note.', 'error');
+                    return;
+                }
+
+                try {
+                    this.showMessage('Generating note...', 'loading');
+                    const response = await fetch('/api/notes/generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prompt })
+                    });
+
+                    if (!response.ok) {
+                        const err = await response.json().catch(() => ({}));
+                        throw new Error(err.error || err.detail || 'Generation failed');
+                    }
+
+                    const created = await response.json();
+
+                    // Add to notes list and select newly created note
+                    // Ensure id is consistent
+                    if (created && created.id) {
+                        // Remove any duplicate with same id
+                        this.notes = this.notes.filter(n => n.id !== created.id);
+                        this.notes.unshift(created);
+                        this.renderNotesList();
+                        // select after short delay to allow DOM click handlers
+                        setTimeout(() => this.selectNote(created.id), 50);
+                        this.showMessage('Generated note saved.', 'success');
+                        if (promptEl) promptEl.value = '';
+                    } else {
+                        this.showMessage('Generated note received but missing id.', 'error');
+                    }
+                } catch (error) {
+                    this.showMessage(`Generate error: ${error.message}`, 'error');
                 }
             }
 

@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request, current_app
 from src.models.note import doc_to_dict, make_note_doc
 from bson import ObjectId
 from pymongo import ReturnDocument
-from src.llm import translate
+from src.llm import translate, generate_note
 from datetime import datetime
 
 note_bp = Blueprint('note', __name__)
@@ -44,6 +44,44 @@ def create_note():
         return jsonify(doc_to_dict(doc)), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+
+@note_bp.route('/notes/generate', methods=['POST'])
+def generate_note_endpoint():
+    """Generate a note using the LLM and persist it.
+
+    Request JSON: { "prompt": "..." }
+    Response: 201 with created note JSON on success.
+    """
+    data = request.get_json(silent=True) or {}
+    prompt = data.get('prompt')
+    if not prompt or not isinstance(prompt, str):
+        return jsonify({'error': 'prompt must be a non-empty string'}), 400
+
+    model_name = data.get('model')
+    api_token = data.get('token') or data.get('api_token')
+
+    try:
+        generated = generate_note(prompt, model_name=model_name, api_token=api_token)
+    except Exception as e:
+        current_app.logger.exception('LLM generate failed')
+        return jsonify({'error': 'LLM generation failed', 'detail': str(e)}), 502
+
+    title = generated.get('title') or ''
+    content = generated.get('content') or ''
+
+    doc = make_note_doc(title, content)
+    try:
+        coll = notes_collection()
+        res = coll.insert_one(doc)
+        doc['_id'] = res.inserted_id
+        return jsonify(doc_to_dict(doc)), 201
+    except RuntimeError as re:
+        return jsonify({'error': str(re)}), 503
+    except Exception as e:
+        current_app.logger.exception('Failed to save generated note')
+        return jsonify({'error': 'Failed to save generated note', 'detail': str(e)}), 500
 
 
 @note_bp.route('/notes/<note_id>', methods=['GET'])

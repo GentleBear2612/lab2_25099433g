@@ -48,6 +48,62 @@ def translate(text: str, target_language: str = "English", model_name: Optional[
     
     return call_llm_model(m, messages, temperature=0.2, top_p=1.0, api_token=api_token)
 
+
+def generate_note(prompt: str, model_name: Optional[str] = None, api_token: Optional[str] = None) -> Dict[str, str]:
+    """Generate a note (title + content) from a user prompt using the configured LLM.
+
+    Returns a dict: { 'title': str, 'content': str }
+    Raises RuntimeError on failure with readable message.
+    """
+    m = model_name or model
+    system_prompt = (
+        "You are a helpful assistant that writes short notes. "
+        "Given a user prompt, produce a concise title (one line) and a content body. "
+        "Respond in JSON with keys 'title' and 'content' only."
+    )
+
+    user_prompt = f"Generate a note for the following request:\n\n{prompt}\n\nRespond with valid JSON: { '{"title":"...","content":"..."}' }"
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+
+    raw = call_llm_model(m, messages, temperature=0.8, top_p=1.0, api_token=api_token)
+
+    # Try to parse JSON from model output
+    import json
+    try:
+        # Some models may wrap JSON in text; try to locate a JSON object
+        text = raw.strip()
+        # If text contains markdown or code fences, attempt to strip them
+        if text.startswith("```"):
+            # remove code fence
+            parts = text.split('\n')
+            # remove first and last line if fence closing present
+            if parts[-1].strip().startswith('```'):
+                text = '\n'.join(parts[1:-1]).strip()
+
+        # Find first { and last }
+        start = text.find('{')
+        end = text.rfind('}')
+        if start != -1 and end != -1 and end > start:
+            json_text = text[start:end+1]
+        else:
+            json_text = text
+
+        parsed = json.loads(json_text)
+        title = parsed.get('title') or parsed.get('Title') or ''
+        content = parsed.get('content') or parsed.get('Content') or ''
+        if not title and content:
+            # fallback: first line as title
+            first_line = content.strip().splitlines()[0]
+            title = first_line[:120]
+
+        return {'title': title.strip(), 'content': content.strip()}
+    except Exception as e:
+        raise RuntimeError(f"Failed to parse LLM output as JSON: {e}. Raw output: {raw}")
+
 # Run the main function if this script is executed
 def _parse_args():
     parser = argparse.ArgumentParser(description="Translate text using configured LLM")

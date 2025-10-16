@@ -182,16 +182,22 @@ def translate_note(note_id):
     token = data.get('token')
 
     try:
-        translated = translate(doc.get('content', ''), target_language=target, model_name=model_name, api_token=token)
+        # Translate title and content separately
+        original_title = doc.get('title', '')
+        original_content = doc.get('content', '')
 
-        # persist the translation into the note document under a `translations` map
+        translated_title = translate(original_title, target_language=target, model_name=model_name, api_token=token) if original_title else ''
+        translated_content = translate(original_content, target_language=target, model_name=model_name, api_token=token) if original_content else ''
+
+        # persist the translation into the note document under a `translations` map as an object per language
         update_doc = {
-            f'translations.{target}': translated,
+            f'translations.{target}.title': translated_title,
+            f'translations.{target}.content': translated_content,
             'updated_at': datetime.utcnow()
         }
         coll.find_one_and_update({'_id': doc.get('_id')}, {'$set': update_doc}, return_document=ReturnDocument.AFTER)
 
-        return jsonify({'id': str(doc.get('_id')), 'translated_content': translated})
+        return jsonify({'id': str(doc.get('_id')), 'translated_title': translated_title, 'translated_content': translated_content})
     except RuntimeError as e:
         # Likely API/token errors
         return jsonify({'error': str(e)}), 502

@@ -743,13 +743,15 @@
                     }
 
                     const data = await response.json();
+                    const translatedTitle = data.translated_title || '';
                     const translatedText = data.translated_content || data.translated || '';
-                    this.showTranslation(translatedText);
+                    // Show both title and content translations in the translation area
+                    this.showTranslation({ title: translatedTitle, content: translatedText });
 
                     // Persist the translation into the note document via a PUT update
                     try {
                         const translationsUpdate = { translations: {} };
-                        translationsUpdate.translations[targetLang] = translatedText;
+                        translationsUpdate.translations[targetLang] = { title: translatedTitle, content: translatedText };
 
                         const putResp = await fetch(`/api/notes/${this.currentNote.id}`, {
                             method: 'PUT',
@@ -766,8 +768,8 @@
                                 document.getElementById('noteTitle').value = refreshed.title || '';
                                 document.getElementById('noteContent').value = refreshed.content || '';
                                 // show the persisted translation from refreshed data if present
-                                const txt = (refreshed.translations && refreshed.translations[targetLang]) || translatedText;
-                                this.showTranslation(txt);
+                                const tobj = (refreshed.translations && refreshed.translations[targetLang]) || { title: translatedTitle, content: translatedText };
+                                this.showTranslation(tobj);
                             }
                         } else {
                             console.warn('PUT translations failed', putResp.status);
@@ -782,10 +784,18 @@
                 }
             }
 
-            showTranslation(text) {
+            showTranslation(obj) {
                 const area = document.getElementById('translationArea');
                 const content = document.getElementById('translationContent');
-                if (content) content.textContent = text;
+                if (content) {
+                    if (typeof obj === 'string') {
+                        content.textContent = obj;
+                    } else {
+                        const title = obj.title || '';
+                        const body = obj.content || '';
+                        content.textContent = (title ? (title + '\n\n') : '') + body;
+                    }
+                }
                 if (area) area.style.display = 'block';
             }
 
